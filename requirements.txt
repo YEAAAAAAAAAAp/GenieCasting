@@ -1,0 +1,23 @@
+# FastAPI Backend
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+python-multipart==0.0.12
+
+# Image Processing
+Pillow==10.4.0
+opencv-python>=4.5.0,<4.11.0  # Compatible with numpy<2
+
+# InsightFace Face Recognition (AuraFace-v1 모델)
+insightface>=0.7.3
+onnxruntime>=1.10.0
+numpy>=1.21.0,<2.0.0  # InsightFace compatibility
+huggingface_hub>=0.20.0
+Cython>=3.0.0
+
+# Machine Learning
+scikit-learn==1.5.2
+
+# Testing
+pytest==8.3.3
+httpx==0.27.2
