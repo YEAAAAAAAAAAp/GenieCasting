@@ -1,6 +1,5 @@
 [phases.setup]
-nixPkgs = ["python312", "gcc", "glib", "zlib", "libGL", "libGLU"]
-aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0"]
+nixPkgs = ["python312", "gcc", "glib", "zlib"]
 
 [phases.install]
 cmds = [
