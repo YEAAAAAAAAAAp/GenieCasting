@@ -1,15 +1,11 @@
 [phases.setup]
-nixPkgs = ["python312", "gcc", "glib", "zlib"]
+nixPkgs = ["python312", "gcc"]
 
 [phases.install]
-cmds = [
-  "pip install --upgrade pip setuptools wheel",
-  "pip install Cython numpy",
-  "pip install -r requirements.txt"
-]
+cmds = ["pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
 
 [start]
-cmd = "PYTHONPATH=/app:$PYTHONPATH uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+cmd = "PYTHONPATH=/app uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
