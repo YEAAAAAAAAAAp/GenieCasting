@@ -1,8 +1,13 @@
 [phases.setup]
-nixPkgs = ["python312", "gcc"]
+nixPkgs = ["python312", "gcc", "glib", "zlib", "libGL", "libGLU"]
+aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "pip install --upgrade pip setuptools wheel",
+  "pip install Cython numpy",
+  "pip install -r requirements.txt"
+]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
