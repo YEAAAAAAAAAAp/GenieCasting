@@ -18,7 +18,6 @@ ENV/
 # Data & models
 backend/app/data/
 !backend/app/data/.gitkeep
-models/
 .insightface/
 
 # Node
