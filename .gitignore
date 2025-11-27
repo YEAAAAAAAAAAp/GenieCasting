@@ -5,6 +5,8 @@ __pycache__/
 *.pyd
 *.so
 .env
+.env.local
+.env*.local
 .venv/
 venv/
 ENV/
