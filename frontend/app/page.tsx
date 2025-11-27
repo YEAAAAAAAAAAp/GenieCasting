@@ -165,7 +165,7 @@ export default function Page() {
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-fuchsia-500 to-purple-600 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
                   <div className="relative w-12 h-12 rounded-2xl overflow-hidden backdrop-blur-xl border border-amber-300/30 shadow-xl">
                     <Image
-                      src="/Genie-clean.png"
+                      src="/genie-clean.png"
                       alt="Genie Logo"
                       fill
                       className="object-contain p-1"
@@ -282,7 +282,7 @@ export default function Page() {
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-fuchsia-500 to-purple-600 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-500 animate-pulse" />
                   <div className="relative w-40 h-40 transform group-hover:scale-110 transition-all duration-500">
                     <Image
-                      src="/Genie-clean.png"
+                      src="/genie-clean.png"
                       alt="Genie Magic"
                       fill
                       className="object-contain"
@@ -737,7 +737,7 @@ export default function Page() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative w-12 h-12">
                     <Image
-                      src="/Genie-clean.png"
+                      src="/genie-clean.png"
                       alt="Genie Logo"
                       fill
                       className="object-contain"
