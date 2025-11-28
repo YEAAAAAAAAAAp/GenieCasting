@@ -69,11 +69,31 @@ export default function Page() {
       const resp = await fetch(`/api/match-actors-batch?${qs.toString()}`, { method: 'POST', body: form })
       const data = await resp.json()
       if (!resp.ok) throw new Error((data as any)?.detail || '요청 실패')
-      const items = (data.items || []).map((it: any) => it.results || []) as MatchResult[][]
+      
+      // 백엔드 응답 구조: { items: [{ filename, results, error? }] }
+      const items = (data.items || []).map((it: any) => {
+        // 오류가 있는 경우 빈 배열 반환 (오류 메시지는 콘솔에 출력)
+        if (it.error) {
+          console.warn(`[${it.filename}] 처리 실패:`, it.error)
+          return []
+        }
+        return it.results || []
+      }) as MatchResult[][]
+      
       setResults(items)
       setProgress(100)
-      setTotalAnalyzed(prev => prev + files.length)
-      setSuccessMessage(`Successfully analyzed ${files.length} image${files.length > 1 ? 's' : ''}!`)
+      
+      // 성공적으로 처리된 이미지 개수 계산
+      const successCount = items.filter(arr => arr.length > 0).length
+      const errorCount = files.length - successCount
+      
+      setTotalAnalyzed(prev => prev + successCount)
+      
+      if (successCount > 0) {
+        setSuccessMessage(`Successfully analyzed ${successCount} image${successCount > 1 ? 's' : ''}!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
+      } else {
+        setError('모든 이미지에서 얼굴을 감지할 수 없습니다. .jpg 또는 .png 파일을 사용하고, 정면 얼굴이 명확한 이미지를 업로드해주세요.')
+      }
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: any) {
       setError(err?.message || '에러가 발생했습니다')
@@ -649,12 +669,21 @@ export default function Page() {
                     <div className="p-5 space-y-4">
                       {res.length === 0 ? (
                         <div className="text-center py-12">
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-900/30 border border-red-700/50 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                           </div>
-                          <p className="text-slate-400 text-sm font-medium">일치하는 항목을 찾을 수 없습니다</p>
+                          <p className="text-red-400 text-sm font-semibold mb-2">얼굴 감지 실패</p>
+                          <p className="text-slate-400 text-xs leading-relaxed px-4">
+                            이미지에서 얼굴을 인식할 수 없습니다.<br />
+                            • .jpg 또는 .png 파일을 사용하세요<br />
+                            • 정면 얼굴이 명확한 사진을 업로드하세요<br />
+                            • .jfif 파일은 지원하지 않습니다
+                          </p>
+                          <div className="mt-4 text-xs text-slate-500">
+                            (개발자 도구 콘솔에서 자세한 오류 확인)
+                          </div>
                         </div>
                       ) : (
                         res.map((r, rank) => (
