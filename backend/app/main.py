@@ -83,9 +83,16 @@ async def match_actors(
         if info.get("image_rel"):
             # served under /actors
             image_url = f"/actors/{info['image_rel']}"
-        results.append(MatchResult(name=info.get("name", f"Actor {idx}"), score=score, image_url=image_url))
+        results.append(MatchResult(
+            actor_name=info.get("name", f"Actor {idx}"),
+            similarity=float(score),
+            image_url=image_url
+        ))
 
-    return MatchResponse(results=results)
+    return MatchResponse(
+        results=results,
+        total_actors=len(INDEX._emb) if INDEX._emb is not None else 0
+    )
 
 
 @app.post("/match-actors-batch")
@@ -137,8 +144,8 @@ async def match_actors_batch(
                 info = INDEX.info(idx)
                 image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
                 items.append({
-                    "name": info.get("name", f"Actor {idx}"), 
-                    "score": score, 
+                    "actor_name": info.get("name", f"Actor {idx}"),
+                    "similarity": float(score),
                     "image_url": image_url,
                     "is_reference": info.get("name", "").lower() == reference_actor.lower().strip() if reference_actor else False
                 })

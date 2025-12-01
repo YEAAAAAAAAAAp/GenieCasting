@@ -4,8 +4,8 @@ import { useMemo, useState, useEffect } from 'react'
 import Image from 'next/image'
 
 type MatchResult = {
-  name: string
-  score: number
+  actor_name: string
+  similarity: number
   image_url?: string | null
   is_reference?: boolean
 }
@@ -688,7 +688,7 @@ export default function Page() {
                       ) : (
                         res.map((r, rank) => (
                           <div
-                            key={`${i}-${r.name}`}
+                            key={`${i}-${r.actor_name}`}
                             className={`relative flex items-center gap-4 p-4 backdrop-blur-xl rounded-xl transition-all duration-300 group/item ${
                               r.is_reference 
                                 ? 'bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 border-2 border-amber-400/60 hover:border-amber-400/80 hover:shadow-2xl hover:shadow-amber-400/30' 
@@ -716,7 +716,7 @@ export default function Page() {
                               {r.image_url ? (
                                 <Image
                                   src={`${backendPublic}${r.image_url}`}
-                                  alt={r.name}
+                                  alt={r.actor_name}
                                   fill
                                   className="object-cover group-hover/item:scale-110 transition-transform duration-500"
                                 />
@@ -729,19 +729,19 @@ export default function Page() {
                             
                             {/* Actor Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-white text-base truncate mb-2">{r.name}</div>
+                              <div className="font-semibold text-white text-base truncate mb-2">{r.actor_name}</div>
                               <div className="space-y-2">
                                 <div className="flex items-center gap-3">
                                   <div className="flex-1 bg-slate-800/60 rounded-full h-2 overflow-hidden border border-slate-700/50 shadow-inner">
                                     <div
                                       className="h-2 rounded-full bg-gradient-to-r from-blue-500 via-blue-400 to-purple-500 shadow-lg shadow-blue-500/50 transition-all duration-500"
-                                      style={{ width: `${r.score * 100}%` }}
+                                      style={{ width: `${r.similarity * 100}%` }}
                                     >
                                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
                                     </div>
                                   </div>
                                   <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent whitespace-nowrap w-14 text-right">
-                                    {(r.score * 100).toFixed(1)}%
+                                    {(r.similarity * 100).toFixed(1)}%
                                   </span>
                                 </div>
                               </div>
