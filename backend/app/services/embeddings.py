@@ -29,40 +29,30 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     """
     InsightFace AuraFace-v1 모델 싱글톤
     최초 호출 시 모델을 로드하고 캐시합니다.
+    InsightFace가 자동으로 GitHub에서 모델을 다운로드합니다.
     
     Args:
         ctx_id: 디바이스 ID (0: GPU, -1: CPU)
     """
     print("🔮 AuraFace-v1 모델 로딩 중...")
     
-    # HuggingFace Hub에서 모델 다운로드
-    model_dir = Path("models/auraface")
-    try:
-        if not model_dir.exists() or not any(model_dir.iterdir()):
-            print("📥 HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중...")
-            snapshot_download(
-                "fal/AuraFace-v1", 
-                local_dir=str(model_dir),
-                local_dir_use_symlinks=False  # Railway/Vercel 호환성
-            )
-            print("✅ 모델 다운로드 완료")
-        else:
-            print(f"✅ 기존 모델 사용: {model_dir.absolute()}")
-    except Exception as e:
-        print(f"⚠️ 경고: 모델 다운로드 중 오류 발생: {e}")
-        if not model_dir.exists() or not any(model_dir.iterdir()):
-            raise RuntimeError(f"모델을 다운로드할 수 없습니다: {e}")
-        print("기존 다운로드된 모델을 사용합니다.")
+    # InsightFace 모델 경로 설정
+    import os
+    models_root = Path("/app/models") if os.path.exists("/app") else Path("models")
+    models_root.mkdir(parents=True, exist_ok=True)
     
-    # 모델 초기화 - allowed_modules로 명시적 경로 지정
-    print(f"📂 모델 경로: {model_dir.absolute()}")
+    print(f"📂 모델 루트 경로: {models_root.absolute()}")
+    print("📥 InsightFace가 필요 시 자동으로 GitHub에서 모델을 다운로드합니다...")
     
+    # 모델 초기화 (InsightFace 자체 다운로드 로직 사용)
     model = FaceAnalysis(
         name="auraface",
-        providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-        root="models",  # models/ 폴더를 루트로 지정
+        providers=["CPUExecutionProvider"],  # Railway에서는 CPU만 사용
+        root=str(models_root),  # models/ 폴더를 루트로 지정
         allowed_modules=["detection", "recognition"]  # 필요한 모듈만 로드
     )
+    
+    print("🔧 모델 준비 중 (det_size=640x640)...")
     model.prepare(ctx_id=ctx_id, det_size=(640, 640))
     
     print("✅ AuraFace-v1 모델 로딩 완료")

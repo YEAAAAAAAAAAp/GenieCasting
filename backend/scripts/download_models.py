@@ -28,15 +28,18 @@ def main():
         print(f"📥 InsightFace AuraFace-v1 모델 다운로드 중...")
         print(f"⚠️  첫 실행 시 GitHub에서 다운로드 (~100MB)")
         
-        # 모델 초기화 (다운로드 트리거)
+        # 모델 초기화 및 준비 (다운로드 + 완전 로딩)
         model = FaceAnalysis(
             name='auraface',
             root=str(models_root),
-            allowed_modules=['detection', 'recognition']
+            allowed_modules=['detection', 'recognition'],
+            providers=['CPUExecutionProvider']  # 빌드 시 CPU만 사용
         )
         
-        # 실제 로딩 없이 준비만 (빌드 시간 단축)
-        print("✅ 모델 다운로드 완료 (prepare 단계는 런타임에 수행)")
+        print("🔧 모델 준비 중 (완전 초기화)...")
+        model.prepare(ctx_id=-1, det_size=(640, 640))  # 완전히 로딩
+        
+        print("✅ 모델 다운로드 및 준비 완료")
         
         print("=" * 60)
         print("✅ InsightFace 모델 다운로드 성공!")
