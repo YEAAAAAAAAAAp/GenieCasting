@@ -21,6 +21,16 @@ ENV/
 backend/app/data/
 !backend/app/data/.gitkeep
 .insightface/
+models/
+uploads/
+
+# Dataset - Include embeddings cache (JSON only), exclude raw images
+dataset/*/*
+!dataset/embeddings/
+dataset/embeddings/**/*.jpg
+dataset/embeddings/**/*.jpeg
+dataset/embeddings/**/*.png
+dataset/embeddings/**/*.webp
 
 # Node
 node_modules/
