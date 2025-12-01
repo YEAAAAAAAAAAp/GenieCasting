@@ -6,7 +6,6 @@ cmds = ["pip install -r requirements.txt"]
 
 [phases.build]
 cmds = [
-  "python backend/scripts/download_insightface_model.py",
   "python backend/scripts/railway_build.py"
 ]
 

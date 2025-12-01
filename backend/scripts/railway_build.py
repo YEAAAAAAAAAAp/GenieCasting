@@ -42,7 +42,17 @@ else:
         print(f"❌ 압축 해제 실패: {e}")
         sys.exit(1)
 
-# Step 3: 캐시로 인덱스 생성
+# Step 3: InsightFace 모델 사전 다운로드
+print("\n📥 InsightFace 모델 사전 다운로드...")
+print("⚡ 런타임 지연 방지를 위한 빌드타임 다운로드\n")
+
+try:
+    from backend.scripts.download_models import main as download_models
+    download_models()
+except Exception as e:
+    print(f"\n⚠️  모델 다운로드 실패 (런타임에 재시도): {e}")
+
+# Step 4: 캐시로 인덱스 생성
 print("\n📦 캐시된 임베딩으로 인덱스 생성 중...")
 print("⚡ 모델 로딩 불필요 - 빠르고 안정적인 빌드\n")
 
@@ -57,5 +67,5 @@ except Exception as e:
 
 print("\n" + "=" * 60)
 print("✅ Railway 배포 빌드 완료!")
-print("📊 모델 없이 캐시만 사용 - 안정적인 배포")
+print("📊 모델 사전 다운로드 + 캐시 인덱스")
 print("=" * 60)
