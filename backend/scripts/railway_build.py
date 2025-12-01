@@ -1,7 +1,9 @@
 """
-Railway 배포 환경에서 캐시를 생성하고 인덱스를 빌드하는 통합 스크립트
+Railway 배포 환경에서 캐시를 압축 해제하고 인덱스를 빌드하는 스크립트
+압축된 임베딩 캐시를 사용하여 모델 없이 빠르고 안정적으로 인덱스 생성
 """
 import sys
+import zipfile
 from pathlib import Path
 
 # 프로젝트 루트 추가
@@ -9,47 +11,51 @@ project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 print("=" * 60)
-print("🚀 Railway 배포: 임베딩 캐시 생성 + 인덱스 빌드")
+print("🚀 Railway 배포: 캐시 압축 해제 + 인덱스 빌드")
 print("=" * 60)
 
-# Step 1: 캐시가 있는지 확인
+# 경로 설정
 dataset_dir = project_root / "dataset"
-embeddings_cache_dir = dataset_dir / "embeddings"
+cache_zip = dataset_dir / "embeddings_cache.zip"
+embeddings_dir = dataset_dir / "embeddings"
 
-cache_exists = embeddings_cache_dir.exists()
-actor_count = 0
+# Step 1: 압축 파일 확인
+if not cache_zip.exists():
+    print(f"\n❌ 압축 파일을 찾을 수 없습니다: {cache_zip}")
+    print("💡 로컬에서 다음 명령으로 생성하세요:")
+    print("   Compress-Archive -Path dataset/embeddings -DestinationPath dataset/embeddings_cache.zip")
+    sys.exit(1)
 
-if cache_exists:
-    actor_dirs = [d for d in embeddings_cache_dir.iterdir() if d.is_dir()]
-    actor_count = len(actor_dirs)
-    print(f"\n✅ 기존 캐시 발견: {actor_count}명의 배우")
+print(f"\n✅ 압축 파일 발견: {cache_zip.name}")
+print(f"📦 파일 크기: {cache_zip.stat().st_size / 1024 / 1024:.2f} MB")
 
-if cache_exists and actor_count > 0:
-    # 캐시가 있으면 build_index_from_cache 사용
-    print("\n📦 캐시된 임베딩으로 인덱스 생성 중...")
-    from backend.scripts.build_index_from_cache import main as build_from_cache
-    build_from_cache()
+# Step 2: 압축 해제
+if embeddings_dir.exists():
+    print(f"\n⚠️  기존 embeddings 폴더 발견, 건너뜀")
 else:
-    # 캐시가 없으면 build_actor_index_insightface 사용
-    print("\n🔮 InsightFace로 임베딩 생성 및 인덱스 빌드 중...")
-    print("⚠️  경고: 이 방식은 시간이 오래 걸리고 모델 로딩 문제가 있을 수 있습니다.\n")
-    
-    import argparse
-    from backend.scripts.build_actor_index_insightface import main as build_with_model
-    
-    # 가짜 args 생성
-    sys.argv = [
-        'build_actor_index_insightface.py',
-        '--dataset-dir', str(dataset_dir)
-    ]
-    
+    print(f"\n📂 압축 해제 중: {embeddings_dir}")
     try:
-        build_with_model()
+        with zipfile.ZipFile(cache_zip, 'r') as zip_ref:
+            zip_ref.extractall(dataset_dir)
+        print("✅ 압축 해제 완료")
     except Exception as e:
-        print(f"\n❌ 모델 기반 빌드 실패: {e}")
-        print("💡 해결책: 로컬에서 캐시를 생성하고 Git에 커밋하세요.")
+        print(f"❌ 압축 해제 실패: {e}")
         sys.exit(1)
 
+# Step 3: 캐시로 인덱스 생성
+print("\n📦 캐시된 임베딩으로 인덱스 생성 중...")
+print("⚡ 모델 로딩 불필요 - 빠르고 안정적인 빌드\n")
+
+try:
+    from backend.scripts.build_index_from_cache import main as build_from_cache
+    build_from_cache()
+except Exception as e:
+    print(f"\n❌ 인덱스 생성 실패: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+
 print("\n" + "=" * 60)
-print("✅ 배포 빌드 완료!")
+print("✅ Railway 배포 빌드 완료!")
+print("📊 모델 없이 캐시만 사용 - 안정적인 배포")
 print("=" * 60)

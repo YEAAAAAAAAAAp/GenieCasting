@@ -24,13 +24,9 @@ backend/app/data/
 models/
 uploads/
 
-# Dataset - Include embeddings cache (JSON only), exclude raw images
-dataset/*/*
-!dataset/embeddings/
-dataset/embeddings/**/*.jpg
-dataset/embeddings/**/*.jpeg
-dataset/embeddings/**/*.png
-dataset/embeddings/**/*.webp
+# Dataset - Include embeddings cache ZIP, exclude everything else
+dataset/*
+!dataset/embeddings_cache.zip
 
 # Node
 node_modules/
