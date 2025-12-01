@@ -17,12 +17,6 @@ except ImportError:
     print("필요한 패키지를 설치해주세요: pip install insightface")
     raise
 
-try:
-    from huggingface_hub import snapshot_download
-except ImportError:
-    print("필요한 패키지를 설치해주세요: pip install huggingface_hub")
-    raise
-
 
 @lru_cache(maxsize=1)
 def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
