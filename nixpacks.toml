@@ -5,7 +5,10 @@ nixPkgs = ["python312", "gcc"]
 cmds = ["pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["python backend/scripts/build_actor_index_insightface.py --dataset dataset/ --clusters 1"]
+cmds = [
+  "python backend/scripts/download_models.py",
+  "python backend/scripts/build_actor_index_insightface.py --dataset-dir dataset"
+]
 
 [start]
 cmd = "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"

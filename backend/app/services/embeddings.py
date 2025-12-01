@@ -36,14 +36,22 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     print("🔮 AuraFace-v1 모델 로딩 중...")
     
     # HuggingFace Hub에서 모델 다운로드
+    model_dir = Path("models/auraface")
     try:
-        model_dir = Path("models/auraface")
-        if not model_dir.exists():
+        if not model_dir.exists() or not any(model_dir.iterdir()):
             print("📥 HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중...")
-            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+            snapshot_download(
+                "fal/AuraFace-v1", 
+                local_dir=str(model_dir),
+                local_dir_use_symlinks=False  # Railway/Vercel 호환성
+            )
             print("✅ 모델 다운로드 완료")
+        else:
+            print(f"✅ 기존 모델 사용: {model_dir.absolute()}")
     except Exception as e:
         print(f"⚠️ 경고: 모델 다운로드 중 오류 발생: {e}")
+        if not model_dir.exists() or not any(model_dir.iterdir()):
+            raise RuntimeError(f"모델을 다운로드할 수 없습니다: {e}")
         print("기존 다운로드된 모델을 사용합니다.")
     
     # 모델 초기화
