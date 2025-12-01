@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 from pathlib import Path
+import numpy as np
 
 from .models.schemas import MatchResponse, MatchResult
 from .services.embeddings import image_embedding
@@ -101,8 +102,30 @@ async def match_actors_batch(
     top_k: int = Query(3, ge=1, le=10),
     reference_actor: str = Query(None, description="레퍼런스 배우 이름 (선택)"),
 ):
+    """
+    배치 이미지 매칭 API
+    
+    - reference_actor가 없으면: 각 지원자별로 Top-K 유사 배우 반환
+    - reference_actor가 있으면: 각 지원자와 레퍼런스 배우 간의 유사도만 반환
+    """
     if not files:
         raise HTTPException(status_code=400, detail="이미지 파일을 업로드하세요")
+    
+    # 레퍼런스 배우 인덱스 찾기 (미리 검색)
+    reference_idx = None
+    if reference_actor:
+        INDEX.ensure_loaded()
+        ref_name_lower = reference_actor.lower().strip()
+        for i in range(len(INDEX._meta)):
+            if INDEX._meta[i].get("name", "").lower() == ref_name_lower:
+                reference_idx = i
+                break
+        if reference_idx is None:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"레퍼런스 배우 '{reference_actor}'를 찾을 수 없습니다. 데이터베이스에 등록된 배우 이름을 입력해주세요."
+            )
+    
     outputs = []
     for f in files:
         if f.content_type is None or not str(f.content_type).startswith("image/"):
@@ -119,41 +142,46 @@ async def match_actors_batch(
             if q is None:
                 outputs.append({"filename": f.filename, "error": "얼굴을 감지할 수 없습니다"})
                 continue
-            top = INDEX.topk(q, k=top_k)
-            if len(top) == 0:
+            
+            # 레퍼런스 배우가 지정된 경우: 해당 배우와의 유사도만 계산
+            if reference_idx is not None:
+                INDEX.ensure_loaded()
+                q_norm = q.astype("float32")
+                q_norm = q_norm / (np.linalg.norm(q_norm) + 1e-12)
+                reference_emb = INDEX._emb[reference_idx]
+                similarity = float(np.dot(reference_emb, q_norm))
+                
+                info = INDEX.info(reference_idx)
+                image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
+                
                 outputs.append({
-                    "filename": f.filename, 
-                    "error": "배우 인덱스가 비어있습니다. 먼저 인덱스를 생성해주세요."
+                    "filename": f.filename,
+                    "reference_actor": info.get("name", "Unknown"),
+                    "similarity": similarity,
+                    "image_url": image_url
                 })
-                continue
-            
-            items = []
-            reference_idx = None
-            reference_score = None
-            
-            # 레퍼런스 배우가 지정된 경우, 해당 배우와의 유사도를 찾음
-            if reference_actor:
+            else:
+                # 레퍼런스 배우가 없는 경우: Top-K 유사 배우 반환
+                top = INDEX.topk(q, k=top_k)
+                if len(top) == 0:
+                    outputs.append({
+                        "filename": f.filename, 
+                        "error": "배우 인덱스가 비어있습니다. 먼저 인덱스를 생성해주세요."
+                    })
+                    continue
+                
+                items = []
                 for idx, score in top:
                     info = INDEX.info(idx)
-                    if info.get("name", "").lower() == reference_actor.lower().strip():
-                        reference_idx = idx
-                        reference_score = score
-                        break
-            
-            for idx, score in top:
-                info = INDEX.info(idx)
-                image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
-                items.append({
-                    "actor_name": info.get("name", f"Actor {idx}"),
-                    "similarity": float(score),
-                    "image_url": image_url,
-                    "is_reference": info.get("name", "").lower() == reference_actor.lower().strip() if reference_actor else False
-                })
-            
-            result = {"filename": f.filename, "results": items}
-            if reference_score is not None:
-                result["reference_score"] = reference_score
-            outputs.append(result)
+                    image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
+                    items.append({
+                        "actor_name": info.get("name", f"Actor {idx}"),
+                        "similarity": float(score),
+                        "image_url": image_url
+                    })
+                
+                outputs.append({"filename": f.filename, "results": items})
+                
         except FileNotFoundError as e:
             raise HTTPException(status_code=503, detail=str(e))
         except Exception as e:

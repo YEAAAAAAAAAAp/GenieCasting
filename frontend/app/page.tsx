@@ -3,22 +3,33 @@
 import { useMemo, useState, useEffect } from 'react'
 import Image from 'next/image'
 
+// 일반 모드: 각 지원자마다 Top-K 유사 배우
 type MatchResult = {
   actor_name: string
   similarity: number
   image_url?: string | null
-  is_reference?: boolean
 }
 
-type MatchResponse = {
-  results: MatchResult[]
+// 레퍼런스 모드: 각 지원자와 레퍼런스 배우 간의 유사도
+type ReferenceMatchResult = {
+  filename: string
+  reference_actor: string
+  similarity: number
+  image_url?: string | null
+  error?: string
 }
 
 export default function Page() {
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // 일반 모드 결과
   const [results, setResults] = useState<MatchResult[][]>([])
+  
+  // 레퍼런스 모드 결과
+  const [referenceResults, setReferenceResults] = useState<ReferenceMatchResult[]>([])
+  
   const [topK, setTopK] = useState<number>(3)
   const [progress, setProgress] = useState<number>(0)
   const [isDragActive, setIsDragActive] = useState(false)
@@ -29,6 +40,9 @@ export default function Page() {
   const [targetActor, setTargetActor] = useState<string>('')
 
   const backendPublic = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+
+  // 레퍼런스 모드 여부
+  const isReferenceMode = targetActor.trim().length > 0
 
   // Generate floating particles on mount
   useEffect(() => {
@@ -46,6 +60,7 @@ export default function Page() {
     e.preventDefault()
     setError(null)
     setResults([])
+    setReferenceResults([])
     setSuccessMessage(null)
     if (files.length === 0) return
     const form = new FormData()
@@ -70,29 +85,53 @@ export default function Page() {
       const data = await resp.json()
       if (!resp.ok) throw new Error((data as any)?.detail || '요청 실패')
       
-      // 백엔드 응답 구조: { items: [{ filename, results, error? }] }
-      const items = (data.items || []).map((it: any) => {
-        // 오류가 있는 경우 빈 배열 반환 (오류 메시지는 콘솔에 출력)
-        if (it.error) {
-          console.warn(`[${it.filename}] 처리 실패:`, it.error)
-          return []
+      // 레퍼런스 모드와 일반 모드에 따라 다른 처리
+      if (isReferenceMode) {
+        // 레퍼런스 모드: 각 항목은 { filename, reference_actor, similarity, image_url } 또는 { filename, error }
+        const refResults = (data.items || []) as ReferenceMatchResult[]
+        
+        // 에러가 없는 항목만 필터링하고 유사도 순으로 정렬
+        const validResults = refResults.filter(item => !item.error)
+        const sortedResults = validResults.sort((a, b) => b.similarity - a.similarity)
+        
+        setReferenceResults(sortedResults)
+        setProgress(100)
+        
+        const successCount = validResults.length
+        const errorCount = files.length - successCount
+        
+        setTotalAnalyzed(prev => prev + successCount)
+        
+        if (successCount > 0) {
+          setSuccessMessage(`Successfully analyzed ${successCount} image${successCount > 1 ? 's' : ''}!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
+        } else {
+          setError('모든 이미지에서 얼굴을 감지할 수 없습니다. .jpg 또는 .png 파일을 사용하고, 정면 얼굴이 명확한 이미지를 업로드해주세요.')
         }
-        return it.results || []
-      }) as MatchResult[][]
-      
-      setResults(items)
-      setProgress(100)
-      
-      // 성공적으로 처리된 이미지 개수 계산
-      const successCount = items.filter(arr => arr.length > 0).length
-      const errorCount = files.length - successCount
-      
-      setTotalAnalyzed(prev => prev + successCount)
-      
-      if (successCount > 0) {
-        setSuccessMessage(`Successfully analyzed ${successCount} image${successCount > 1 ? 's' : ''}!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
       } else {
-        setError('모든 이미지에서 얼굴을 감지할 수 없습니다. .jpg 또는 .png 파일을 사용하고, 정면 얼굴이 명확한 이미지를 업로드해주세요.')
+        // 일반 모드: 백엔드 응답 구조: { items: [{ filename, results, error? }] }
+        const items = (data.items || []).map((it: any) => {
+          // 오류가 있는 경우 빈 배열 반환 (오류 메시지는 콘솔에 출력)
+          if (it.error) {
+            console.warn(`[${it.filename}] 처리 실패:`, it.error)
+            return []
+          }
+          return it.results || []
+        }) as MatchResult[][]
+        
+        setResults(items)
+        setProgress(100)
+        
+        // 성공적으로 처리된 이미지 개수 계산
+        const successCount = items.filter(arr => arr.length > 0).length
+        const errorCount = files.length - successCount
+        
+        setTotalAnalyzed(prev => prev + successCount)
+        
+        if (successCount > 0) {
+          setSuccessMessage(`Successfully analyzed ${successCount} image${successCount > 1 ? 's' : ''}!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
+        } else {
+          setError('모든 이미지에서 얼굴을 감지할 수 없습니다. .jpg 또는 .png 파일을 사용하고, 정면 얼굴이 명확한 이미지를 업로드해주세요.')
+        }
       }
       setTimeout(() => setSuccessMessage(null), 5000)
     } catch (err: any) {
@@ -134,6 +173,7 @@ export default function Page() {
   const clearAll = () => {
     setFiles([])
     setResults([])
+    setReferenceResults([])
     setError(null)
     setProgress(0)
   }
@@ -621,6 +661,137 @@ export default function Page() {
             </section>
           )}
 
+          {/* Reference Mode Results - Sorted by Similarity */}
+          {referenceResults.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-light text-white flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 backdrop-blur-sm border border-amber-400/50 flex items-center justify-center">
+                    <span className="text-xl">🎯</span>
+                  </div>
+                  <span className="text-slate-200">
+                    <span className="text-amber-300 font-semibold">&apos;{targetActor}&apos;</span>
+                    <span className="text-slate-400 mx-2">닮은 지원자 순위</span>
+                  </span>
+                </h2>
+                <div className="flex items-center gap-3">
+                  <span className="px-4 py-2 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-xl border border-green-500/30 text-sm font-medium text-green-300">
+                    <svg className="w-4 h-4 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {referenceResults.length}명 분석 완료
+                  </span>
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-sm font-medium text-slate-300 hover:text-white transition-all"
+                  >
+                    맨 위로
+                  </button>
+                </div>
+              </div>
+
+              {/* Ranking List */}
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {referenceResults.map((result, i) => (
+                  <div
+                    key={`ref-${i}`}
+                    className="group backdrop-blur-xl bg-gradient-to-br from-slate-900/50 to-slate-800/50 border border-slate-700/40 rounded-2xl overflow-hidden hover:border-amber-500/60 hover:shadow-2xl hover:shadow-amber-500/20 transition-all duration-500 hover:scale-[1.02] transform"
+                  >
+                    {/* Rank Header */}
+                    <div className="bg-gradient-to-r from-amber-500/20 via-fuchsia-500/20 to-purple-500/20 border-b border-slate-700/50 p-4 backdrop-blur-xl">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-amber-400/40 to-fuchsia-500/40 border-2 border-amber-400/60 rounded-xl flex items-center justify-center text-base font-bold text-white shadow-lg">
+                            {i + 1}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white text-sm">지원자 {i + 1}</h3>
+                            <p className="text-xs text-slate-400 truncate max-w-[180px]">{result.filename}</p>
+                          </div>
+                        </div>
+                        {i === 0 && (
+                          <div className="px-2 py-1 bg-gradient-to-r from-amber-400 to-fuchsia-500 rounded-full text-xs font-bold text-white shadow-lg">
+                            👑 1위
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Similarity Info */}
+                    <div className="p-5 space-y-4">
+                      {/* Actor Preview */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 shrink-0 bg-slate-800/60 rounded-xl overflow-hidden border border-slate-600/50 shadow-lg">
+                          {result.image_url ? (
+                            <Image
+                              src={`${backendPublic}${result.image_url}`}
+                              alt={result.reference_actor}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs font-medium">
+                              N/A
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs text-slate-400 mb-1">닮은 배우</div>
+                          <div className="font-semibold text-white text-base">{result.reference_actor}</div>
+                        </div>
+                      </div>
+
+                      {/* Similarity Score */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400">유사도</span>
+                          <span className="text-amber-300 font-bold text-lg">
+                            {(result.similarity * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex-1 bg-slate-800/60 rounded-full h-3 overflow-hidden border border-slate-700/50 shadow-inner">
+                          <div
+                            className="h-3 rounded-full bg-gradient-to-r from-amber-400 via-fuchsia-500 to-purple-500 shadow-lg shadow-amber-500/50 transition-all duration-1000 relative overflow-hidden"
+                            style={{ width: `${result.similarity * 100}%` }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Match Grade */}
+                      <div className="pt-3 border-t border-slate-700/50">
+                        <div className="flex items-center justify-center gap-2 text-xs">
+                          {result.similarity >= 0.85 ? (
+                            <>
+                              <span className="text-2xl">🔥</span>
+                              <span className="font-semibold text-amber-300">Perfect Match!</span>
+                            </>
+                          ) : result.similarity >= 0.75 ? (
+                            <>
+                              <span className="text-2xl">✨</span>
+                              <span className="font-semibold text-fuchsia-300">Great Match</span>
+                            </>
+                          ) : result.similarity >= 0.65 ? (
+                            <>
+                              <span className="text-2xl">👍</span>
+                              <span className="font-semibold text-blue-300">Good Match</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-2xl">💫</span>
+                              <span className="font-semibold text-slate-400">Potential</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Premium Results Section */}
           {results.length > 0 && (
             <section>
@@ -689,25 +860,10 @@ export default function Page() {
                         res.map((r, rank) => (
                           <div
                             key={`${i}-${r.actor_name}`}
-                            className={`relative flex items-center gap-4 p-4 backdrop-blur-xl rounded-xl transition-all duration-300 group/item ${
-                              r.is_reference 
-                                ? 'bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 border-2 border-amber-400/60 hover:border-amber-400/80 hover:shadow-2xl hover:shadow-amber-400/30' 
-                                : 'bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-slate-600/50 hover:bg-slate-800/60 hover:border-slate-500/60 hover:shadow-lg hover:shadow-blue-500/10'
-                            }`}
+                            className="relative flex items-center gap-4 p-4 backdrop-blur-xl rounded-xl transition-all duration-300 group/item bg-gradient-to-br from-slate-800/40 to-slate-700/40 border border-slate-600/50 hover:bg-slate-800/60 hover:border-slate-500/60 hover:shadow-lg hover:shadow-blue-500/10"
                           >
-                            {/* Reference Badge */}
-                            {r.is_reference && (
-                              <div className="absolute -top-2 -right-2 px-3 py-1 bg-gradient-to-r from-amber-400 to-fuchsia-500 rounded-full text-xs font-bold text-white shadow-lg animate-pulse">
-                                🎯 레퍼런스
-                              </div>
-                            )}
-                            
                             {/* Rank Badge */}
-                            <div className={`flex items-center justify-center w-10 h-10 border rounded-xl text-white text-base font-bold shadow-lg group-hover/item:scale-110 transition-transform duration-300 ${
-                              r.is_reference
-                                ? 'bg-gradient-to-br from-amber-400/40 to-fuchsia-500/40 border-amber-400/60'
-                                : 'bg-gradient-to-br from-blue-500/30 to-purple-500/30 border-slate-600/50'
-                            }`}>
+                            <div className="flex items-center justify-center w-10 h-10 border rounded-xl text-white text-base font-bold shadow-lg group-hover/item:scale-110 transition-transform duration-300 bg-gradient-to-br from-blue-500/30 to-purple-500/30 border-slate-600/50">
                               {rank + 1}
                             </div>
                             
