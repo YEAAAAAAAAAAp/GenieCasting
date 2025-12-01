@@ -183,6 +183,7 @@ def image_embedding(
         cache_path = _get_cache_path(image_path)
         cached_embedding = _load_embedding_from_cache(cache_path)
         if cached_embedding is not None:
+            print(f"✅ 캐시에서 임베딩 로드: {cache_path}")
             return cached_embedding
     
     # 캐시가 없거나 사용하지 않는 경우, 임베딩 계산
@@ -190,11 +191,16 @@ def image_embedding(
         model = get_insightface_model(ctx_id=ctx_id)
         cv_image = _load_image(img_bytes)
         
+        print(f"🔍 얼굴 감지 시도 중... (이미지 크기: {cv_image.shape})")
+        
         # 얼굴 감지 및 임베딩 추출
         faces = model.get(cv_image)
         
         if not faces or len(faces) == 0:
+            print(f"⚠️ 얼굴을 감지하지 못했습니다. 정면 얼굴이 명확한 .jpg 또는 .png 파일을 사용하세요.")
             return None
+        
+        print(f"✅ {len(faces)}개의 얼굴 감지됨")
         
         # 첫 번째 얼굴의 정규화된 임베딩 반환 (normed_embedding)
         embedding = faces[0].normed_embedding.astype("float32")
@@ -203,6 +209,7 @@ def image_embedding(
         if use_cache and image_path:
             cache_path = _get_cache_path(image_path)
             _save_embedding_to_cache(cache_path, embedding)
+            print(f"💾 임베딩 캐시 저장: {cache_path}")
         
         return embedding
         
