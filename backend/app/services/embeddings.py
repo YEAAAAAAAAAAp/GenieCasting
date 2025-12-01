@@ -54,11 +54,14 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
             raise RuntimeError(f"모델을 다운로드할 수 없습니다: {e}")
         print("기존 다운로드된 모델을 사용합니다.")
     
-    # 모델 초기화
+    # 모델 초기화 - allowed_modules로 명시적 경로 지정
+    print(f"📂 모델 경로: {model_dir.absolute()}")
+    
     model = FaceAnalysis(
         name="auraface",
         providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-        root=".",
+        root="models",  # models/ 폴더를 루트로 지정
+        allowed_modules=["detection", "recognition"]  # 필요한 모듈만 로드
     )
     model.prepare(ctx_id=ctx_id, det_size=(640, 640))
     
