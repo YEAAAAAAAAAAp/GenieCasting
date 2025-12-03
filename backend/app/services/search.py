@@ -65,23 +65,31 @@ class ActorIndex:
         Returns:
             (인덱스, 유사도) 튜플 또는 None (찾지 못한 경우)
         """
-        self.ensure_loaded()
-        assert self._emb is not None and self._meta is not None
-        
-        if len(self._emb) == 0:
+        try:
+            self.ensure_loaded()
+            if self._emb is None or self._meta is None:
+                return None
+            
+            if len(self._emb) == 0:
+                return None
+            
+            # 전체 인덱스에서 배우 이름으로 검색
+            actor_name_lower = actor_name.lower().strip()
+            for idx, meta in enumerate(self._meta):
+                if meta.get("name", "").lower() == actor_name_lower:
+                    # 유사도 계산
+                    q = query_emb.astype("float32")
+                    q_norm = np.linalg.norm(q)
+                    if q_norm < 1e-12:
+                        return None
+                    q = q / q_norm
+                    score = float(self._emb[idx] @ q)
+                    return (idx, score)
+            
             return None
-        
-        # 전체 인덱스에서 배우 이름으로 검색
-        actor_name_lower = actor_name.lower().strip()
-        for idx, meta in enumerate(self._meta):
-            if meta.get("name", "").lower() == actor_name_lower:
-                # 유사도 계산
-                q = query_emb.astype("float32")
-                q = q / (np.linalg.norm(q) + 1e-12)
-                score = float(self._emb[idx] @ q)
-                return (idx, score)
-        
-        return None
+        except Exception as e:
+            print(f"[ERROR] find_actor_by_name failed: {e}")
+            raise
 
 
 INDEX = ActorIndex()

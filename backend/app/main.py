@@ -118,7 +118,14 @@ async def match_actors_batch(
             # 레퍼런스 배우가 지정된 경우와 아닌 경우를 분리 처리
             if reference_actor:
                 # 레퍼런스 모드: 전체 인덱스에서 레퍼런스 배우를 찾아서 유사도 계산
-                reference_result = INDEX.find_actor_by_name(q, reference_actor)
+                try:
+                    reference_result = INDEX.find_actor_by_name(q, reference_actor)
+                except Exception as e:
+                    outputs.append({
+                        "filename": f.filename,
+                        "error": f"레퍼런스 배우 검색 중 오류: {str(e)}"
+                    })
+                    continue
                 
                 if reference_result is None:
                     # 레퍼런스 배우를 찾지 못한 경우
