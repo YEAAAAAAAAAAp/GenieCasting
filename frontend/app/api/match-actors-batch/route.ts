@@ -18,7 +18,18 @@ export async function POST(req: Request) {
     const resp = await fetch(backendUrl.toString(), {
       method: 'POST',
       body: formData,
+      signal: AbortSignal.timeout(55000), // 55초 타임아웃 (Vercel 60초보다 짧게)
     })
+    
+    if (!resp.ok) {
+      const errorText = await resp.text()
+      console.error('[API Route Error]', resp.status, errorText)
+      return NextResponse.json(
+        { detail: `Backend error: ${resp.status} - ${errorText}` }, 
+        { status: resp.status }
+      )
+    }
+    
     const data = await resp.json()
     
     // 상대 경로 image_url을 절대 URL로 변환 (일반 모드만)
