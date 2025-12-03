@@ -54,5 +54,34 @@ class ActorIndex:
         assert self._meta is not None
         return self._meta[idx]
 
+    def find_actor_by_name(self, query_emb: np.ndarray, actor_name: str) -> Optional[Tuple[int, float]]:
+        """
+        전체 인덱스에서 특정 배우 이름을 찾아서 유사도를 계산
+        
+        Args:
+            query_emb: 쿼리 임베딩 벡터
+            actor_name: 찾을 배우 이름
+            
+        Returns:
+            (인덱스, 유사도) 튜플 또는 None (찾지 못한 경우)
+        """
+        self.ensure_loaded()
+        assert self._emb is not None and self._meta is not None
+        
+        if len(self._emb) == 0:
+            return None
+        
+        # 전체 인덱스에서 배우 이름으로 검색
+        actor_name_lower = actor_name.lower().strip()
+        for idx, meta in enumerate(self._meta):
+            if meta.get("name", "").lower() == actor_name_lower:
+                # 유사도 계산
+                q = query_emb.astype("float32")
+                q = q / (np.linalg.norm(q) + 1e-12)
+                score = float(self._emb[idx] @ q)
+                return (idx, score)
+        
+        return None
+
 
 INDEX = ActorIndex()

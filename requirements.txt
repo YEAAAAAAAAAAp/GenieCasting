@@ -12,6 +12,7 @@ opencv-python-headless>=4.5.0,<4.11.0  # Headless version for server deployment
 insightface>=0.7.3
 onnxruntime>=1.10.0
 numpy>=1.21.0,<2.0.0  # InsightFace compatibility
+huggingface_hub>=0.20.0
 Cython>=3.0.0
 
 # Machine Learning

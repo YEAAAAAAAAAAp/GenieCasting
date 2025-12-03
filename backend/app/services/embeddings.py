@@ -17,37 +17,70 @@ except ImportError:
     print("필요한 패키지를 설치해주세요: pip install insightface")
     raise
 
+try:
+    from huggingface_hub import snapshot_download
+except ImportError:
+    print("필요한 패키지를 설치해주세요: pip install huggingface_hub")
+    raise
+
 
 @lru_cache(maxsize=1)
 def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     """
     InsightFace AuraFace-v1 모델 싱글톤
     최초 호출 시 모델을 로드하고 캐시합니다.
-    InsightFace가 자동으로 GitHub에서 모델을 다운로드합니다.
     
     Args:
         ctx_id: 디바이스 ID (0: GPU, -1: CPU)
     """
     print("🔮 AuraFace-v1 모델 로딩 중...")
     
-    # InsightFace 모델 경로 설정
-    import os
-    models_root = Path("/app/models") if os.path.exists("/app") else Path("models")
-    models_root.mkdir(parents=True, exist_ok=True)
+    # HuggingFace Hub에서 모델 다운로드
+    model_dir = Path("models/auraface")
+    try:
+        if not model_dir.exists():
+            print("📥 HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중...")
+            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+            print("✅ 모델 다운로드 완료")
+        else:
+            # 모델 파일이 손상되었을 수 있으므로 확인
+            model_files = list(model_dir.glob("*.onnx"))
+            if not model_files or len(model_files) < 3:
+                print("⚠️ 모델 파일이 불완전합니다. 다시 다운로드합니다...")
+                import shutil
+                shutil.rmtree(model_dir, ignore_errors=True)
+                snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+                print("✅ 모델 재다운로드 완료")
+    except Exception as e:
+        print(f"⚠️ 경고: 모델 다운로드 중 오류 발생: {e}")
+        if not model_dir.exists():
+            raise RuntimeError(f"모델을 다운로드할 수 없습니다: {e}")
+        print("기존 다운로드된 모델을 사용합니다.")
     
-    print(f"📂 모델 루트 경로: {models_root.absolute()}")
-    print("📥 InsightFace가 필요 시 자동으로 GitHub에서 모델을 다운로드합니다...")
-    
-    # 모델 초기화 (InsightFace 자체 다운로드 로직 사용)
-    model = FaceAnalysis(
-        name="auraface",
-        providers=["CPUExecutionProvider"],  # Railway에서는 CPU만 사용
-        root=str(models_root),  # models/ 폴더를 루트로 지정
-        allowed_modules=["detection", "recognition"]  # 필요한 모듈만 로드
-    )
-    
-    print("🔧 모델 준비 중 (det_size=640x640)...")
-    model.prepare(ctx_id=ctx_id, det_size=(640, 640))
+    # 모델 초기화 (CPU만 사용 - CUDA가 없을 경우 경고 방지)
+    try:
+        model = FaceAnalysis(
+            name="auraface",
+            providers=["CPUExecutionProvider"],  # CPU만 사용
+            root=".",
+        )
+        model.prepare(ctx_id=ctx_id, det_size=(640, 640))
+    except Exception as e:
+        # 모델 파일이 손상되었을 경우 재다운로드 시도
+        if "INVALID_PROTOBUF" in str(e) or "Protobuf parsing failed" in str(e):
+            print("❌ 모델 파일이 손상되었습니다. 다시 다운로드합니다...")
+            import shutil
+            shutil.rmtree(model_dir, ignore_errors=True)
+            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+            print("✅ 모델 재다운로드 완료. 다시 시도합니다...")
+            model = FaceAnalysis(
+                name="auraface",
+                providers=["CPUExecutionProvider"],
+                root=".",
+            )
+            model.prepare(ctx_id=ctx_id, det_size=(640, 640))
+        else:
+            raise
     
     print("✅ AuraFace-v1 모델 로딩 완료")
     return model

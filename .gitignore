@@ -21,12 +21,6 @@ ENV/
 backend/app/data/
 !backend/app/data/.gitkeep
 .insightface/
-models/
-uploads/
-
-# Dataset - Include embeddings cache ZIP, exclude everything else
-dataset/*
-!dataset/embeddings_cache.zip
 
 # Node
 node_modules/
