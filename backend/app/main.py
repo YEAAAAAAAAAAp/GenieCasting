@@ -95,6 +95,8 @@ async def match_actors_batch(
     top_k: int = Query(3, ge=1, le=50, description="레퍼런스 배우 기준으로 보여줄 상위 지원자 수"),
     reference_actor: str = Query(None, description="레퍼런스 배우 이름 (선택)"),
 ):
+    print(f"[DEBUG] match_actors_batch called - files count: {len(files)}, top_k: {top_k}, reference_actor: {reference_actor}")
+    
     if not files:
         raise HTTPException(status_code=400, detail="이미지 파일을 업로드하세요")
     outputs = []

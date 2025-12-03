@@ -29,11 +29,24 @@ export async function POST(req: Request) {
       backendUrl.searchParams.set('reference_actor', reference_actor)
     }
     
-    const resp = await fetch(backendUrl.toString(), {
-      method: 'POST',
-      body: formData,
-      signal: AbortSignal.timeout(895000), // 895초 타임아웃 (Vercel 900초보다 짧게)
-    })
+    console.log('[DEBUG] Sending request to:', backendUrl.toString())
+    console.log('[DEBUG] FormData files count:', Array.from(formData.keys()).filter(k => k === 'files').length)
+    
+    let resp;
+    try {
+      resp = await fetch(backendUrl.toString(), {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(895000), // 895초 타임아웃 (Vercel 900초보다 짧게)
+        // Node.js fetch 옵션
+        keepalive: true,
+      })
+    } catch (fetchError: any) {
+      console.error('[DEBUG] Fetch error:', fetchError.message)
+      console.error('[DEBUG] Fetch error stack:', fetchError.stack)
+      console.error('[DEBUG] Fetch error cause:', fetchError.cause)
+      throw new Error(`Backend fetch failed: ${fetchError.message}`)
+    }
     
     console.log('[DEBUG] Backend response status:', resp.status)
     
