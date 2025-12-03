@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const resp = await fetch(backendUrl.toString(), {
       method: 'POST',
       body: formData,
-      signal: AbortSignal.timeout(55000), // 55초 타임아웃 (Vercel 60초보다 짧게)
+      signal: AbortSignal.timeout(5500000), // 5500초 타임아웃 (Vercel 6000초보다 짧게)
     })
     
     console.log('[DEBUG] Backend response status:', resp.status)
