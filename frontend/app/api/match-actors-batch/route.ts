@@ -5,6 +5,10 @@ export async function POST(req: Request) {
     const formData = await req.formData()
     const backend = process.env.BACKEND_URL
     
+    // 환경변수 디버깅
+    console.log('[DEBUG] BACKEND_URL:', backend ? 'SET' : 'NOT SET')
+    console.log('[DEBUG] Full backend URL:', backend)
+    
     // 환경변수 검증
     if (!backend) {
       console.error('[API Route] BACKEND_URL environment variable is not set')
@@ -31,6 +35,8 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(55000), // 55초 타임아웃 (Vercel 60초보다 짧게)
     })
     
+    console.log('[DEBUG] Backend response status:', resp.status)
+    
     if (!resp.ok) {
       const errorText = await resp.text()
       console.error('[API Route Error]', resp.status, errorText)
@@ -56,10 +62,15 @@ export async function POST(req: Request) {
         }
         return item
       })
-    }
-    
     return NextResponse.json(data, { status: resp.status })
   } catch (e: any) {
-    return NextResponse.json({ detail: e?.message || 'Proxy error' }, { status: 500 })
+    console.error('[API Route Exception]', e)
+    return NextResponse.json({ 
+      detail: e?.message || 'Proxy error',
+      error: e?.toString(),
+      stack: e?.stack 
+    }, { status: 500 })
+  }
+}   return NextResponse.json({ detail: e?.message || 'Proxy error' }, { status: 500 })
   }
 }
