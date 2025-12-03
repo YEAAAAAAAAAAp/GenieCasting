@@ -18,6 +18,8 @@ type ResultItem = {
   filename: string
   results: MatchResult[]
   imageUrl: string
+  referenceScore?: number  // 레퍼런스 모드 점수
+  referenceActorName?: string  // 레퍼런스 배우 이름
 }
 
 export default function Page() {
@@ -97,20 +99,23 @@ export default function Page() {
           }
         }
         
-        let matchResults: MatchResult[] = []
-        
-        // 레퍼런스 모드: reference_only가 있으면 그것만 사용, 없으면 results 사용
-        if (targetActor.trim() && it.reference_only) {
-          matchResults = [it.reference_only as MatchResult]
+        // 레퍼런스 모드와 일반 모드 처리
+        if (targetActor.trim() && it.reference_score !== undefined) {
+          // 레퍼런스 모드: 유사도 점수만 표시 (배우 이미지 없음)
+          return {
+            filename: it.filename,
+            results: [],  // 빈 배열 - UI에서 점수만 표시
+            imageUrl: fileUrlMap.get(it.filename) || '',
+            referenceScore: it.reference_score,
+            referenceActorName: it.reference_actor_name
+          }
         } else {
           // 일반 모드: 전체 배우 랭킹 리스트 사용
-          matchResults = (it.results || []) as MatchResult[]
-        }
-        
-        return {
-          filename: it.filename,
-          results: matchResults,
-          imageUrl: fileUrlMap.get(it.filename) || ''
+          return {
+            filename: it.filename,
+            results: (it.results || []) as MatchResult[],
+            imageUrl: fileUrlMap.get(it.filename) || ''
+          }
         }
       })
       
@@ -716,7 +721,67 @@ export default function Page() {
                       )}
                     </div>
                     <div className="p-5 space-y-4">
-                      {res.results.length === 0 ? (
+                      {/* 레퍼런스 모드: 점수만 표시 */}
+                      {targetActor && res.referenceScore !== undefined ? (
+                        <div className="text-center py-8">
+                          <div className="mb-6">
+                            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 border-2 border-amber-400/60 flex items-center justify-center">
+                              <span className="text-4xl">🎯</span>
+                            </div>
+                            <h4 className="text-lg font-bold text-white mb-2">
+                              <span className="text-amber-300">&apos;{res.referenceActorName}&apos;</span> 유사도
+                            </h4>
+                          </div>
+                          
+                          {/* 유사도 점수 표시 */}
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <div className="w-32 h-32 mx-auto">
+                                <svg className="w-full h-full transform -rotate-90">
+                                  <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="56"
+                                    stroke="currentColor"
+                                    strokeWidth="8"
+                                    fill="none"
+                                    className="text-slate-700/50"
+                                  />
+                                  <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="56"
+                                    stroke="currentColor"
+                                    strokeWidth="8"
+                                    fill="none"
+                                    strokeDasharray={`${2 * Math.PI * 56}`}
+                                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - res.referenceScore)}`}
+                                    className="text-amber-400 transition-all duration-1000"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="text-center">
+                                    <div className="text-3xl font-bold bg-gradient-to-r from-amber-300 to-fuchsia-400 bg-clip-text text-transparent">
+                                      {(res.referenceScore * 100).toFixed(1)}
+                                    </div>
+                                    <div className="text-xs text-slate-400 mt-1">유사도</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30">
+                              <p className="text-sm text-amber-200">
+                                {res.referenceScore >= 0.7 ? '🌟 매우 높은 유사도!' :
+                                 res.referenceScore >= 0.5 ? '✨ 높은 유사도' :
+                                 res.referenceScore >= 0.3 ? '💫 중간 유사도' :
+                                 '⭐ 낮은 유사도'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : res.results.length === 0 ? (
                         <div className="text-center py-12">
                           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-900/30 border border-red-700/50 flex items-center justify-center">
                             <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

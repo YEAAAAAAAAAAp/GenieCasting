@@ -130,21 +130,12 @@ async def match_actors_batch(
                 
                 reference_idx, reference_score = reference_result
                 info = INDEX.info(reference_idx)
-                image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
                 
-                # 레퍼런스 배우만 결과에 포함
-                reference_only_item = {
-                    "name": info.get("name", f"Actor {reference_idx}"),
-                    "score": reference_score,
-                    "image_url": image_url,
-                    "is_reference": True
-                }
-                
+                # 레퍼런스 모드: 유사도 점수만 반환 (이미지 URL 없음)
                 result = {
                     "filename": f.filename,
-                    "results": [reference_only_item],  # 레퍼런스 배우만 포함
+                    "reference_actor_name": info.get("name", f"Actor {reference_idx}"),
                     "reference_score": reference_score,
-                    "reference_only": reference_only_item
                 }
                 
                 # 레퍼런스 배우 기준으로 입력 이미지를 랭킹하기 위해 수집

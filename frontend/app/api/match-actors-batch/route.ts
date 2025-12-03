@@ -21,9 +21,10 @@ export async function POST(req: Request) {
     })
     const data = await resp.json()
     
-    // 상대 경로 image_url을 절대 URL로 변환
+    // 상대 경로 image_url을 절대 URL로 변환 (일반 모드만)
     if (data.items && Array.isArray(data.items)) {
       data.items = data.items.map((item: any) => {
+        // 레퍼런스 모드는 image_url이 없으므로 변환 불필요
         if (item.results && Array.isArray(item.results)) {
           item.results = item.results.map((result: any) => {
             if (result.image_url && !result.image_url.startsWith('http')) {
@@ -31,10 +32,6 @@ export async function POST(req: Request) {
             }
             return result
           })
-        }
-        // reference_only도 변환
-        if (item.reference_only && item.reference_only.image_url && !item.reference_only.image_url.startsWith('http')) {
-          item.reference_only.image_url = `${backend}${item.reference_only.image_url}`
         }
         return item
       })
