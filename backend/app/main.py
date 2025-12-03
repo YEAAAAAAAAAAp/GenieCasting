@@ -95,21 +95,38 @@ async def match_actors_batch(
     top_k: int = Query(3, ge=1, le=50, description="레퍼런스 배우 기준으로 보여줄 상위 지원자 수"),
     reference_actor: str = Query(None, description="레퍼런스 배우 이름 (선택)"),
 ):
+    import sys
+    import gc
+    
     print(f"[DEBUG] match_actors_batch called - files count: {len(files)}, top_k: {top_k}, reference_actor: {reference_actor}")
+    print(f"[DEBUG] Memory usage: {sys.getsizeof(files) / 1024 / 1024:.2f} MB")
     
     if not files:
         raise HTTPException(status_code=400, detail="이미지 파일을 업로드하세요")
+    
+    # 파일 개수 제한 (메모리 보호)
+    if len(files) > 20:
+        raise HTTPException(status_code=400, detail="한 번에 최대 20개의 이미지만 업로드할 수 있습니다")
+    
     outputs = []
     # 레퍼런스 배우 기준으로 업로드된 이미지들을 정렬하기 위한 리스트
     reference_rankings = []
-    for f in files:
-        if f.content_type is None or not str(f.content_type).startswith("image/"):
-            outputs.append({"filename": f.filename, "error": "이미지 아님"})
-            continue
-        contents = await f.read()
-        if len(contents) > 10 * 1024 * 1024:
-            outputs.append({"filename": f.filename, "error": "파일이 너무 큼(>10MB)"})
-            continue
+    
+    try:
+        for idx, f in enumerate(files):
+            print(f"[DEBUG] Processing file {idx + 1}/{len(files)}: {f.filename}")
+            
+            if f.content_type is None or not str(f.content_type).startswith("image/"):
+                outputs.append({"filename": f.filename, "error": "이미지 아님"})
+                continue
+            
+            contents = await f.read()
+            file_size_mb = len(contents) / 1024 / 1024
+            print(f"[DEBUG] File size: {file_size_mb:.2f} MB")
+            
+            if len(contents) > 10 * 1024 * 1024:
+                outputs.append({"filename": f.filename, "error": "파일이 너무 큼(>10MB)"})
+                continue
         try:
             # 업로드된 파일의 경우 파일명을 기반으로 캐시 경로 생성
             image_path = f.filename if f.filename else None
@@ -177,9 +194,23 @@ async def match_actors_batch(
                 result = {"filename": f.filename, "results": items}
                 outputs.append(result)
         except FileNotFoundError as e:
+            print(f"[ERROR] FileNotFoundError for {f.filename}: {e}")
             raise HTTPException(status_code=503, detail=str(e))
         except Exception as e:
+            print(f"[ERROR] Exception processing {f.filename}: {e}")
+            import traceback
+            traceback.print_exc()
             outputs.append({"filename": f.filename, "error": f"처리 실패: {e}"})
+        finally:
+            # 메모리 정리
+            del contents
+            gc.collect()
+    
+    except Exception as e:
+        print(f"[CRITICAL ERROR] Batch processing failed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"서버 오류: {e}")
 
     # 레퍼런스 배우가 지정된 경우:
     # "레퍼런스 배우 -> 입력된 이미지 리스트업" 형태의 데이터를 추가로 제공

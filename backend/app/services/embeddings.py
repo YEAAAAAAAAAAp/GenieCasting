@@ -33,7 +33,10 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     Args:
         ctx_id: 디바이스 ID (0: GPU, -1: CPU)
     """
+    import sys
     print("🔮 AuraFace-v1 모델 로딩 중...")
+    print(f"[DEBUG] Python version: {sys.version}")
+    print(f"[DEBUG] Available memory check...")
     
     # HuggingFace Hub에서 모델 다운로드
     model_dir = Path("models/auraface")
@@ -195,31 +198,44 @@ def image_embedding(
     Returns:
         512차원 numpy 배열 (float32, L2-normalized) 또는 None (얼굴이 없는 경우)
     """
+    print(f"[DEBUG] image_embedding called - image_path: {image_path}, use_cache: {use_cache}")
+    
     # 캐시에서 로드 시도
     if use_cache and image_path:
         cache_path = _get_cache_path(image_path)
         cached_embedding = _load_embedding_from_cache(cache_path)
         if cached_embedding is not None:
+            print(f"[DEBUG] Cache hit: {cache_path}")
             return cached_embedding
+        else:
+            print(f"[DEBUG] Cache miss: {cache_path}")
     
     # 캐시가 없거나 사용하지 않는 경우, 임베딩 계산
     try:
+        print("[DEBUG] Loading InsightFace model...")
         model = get_insightface_model(ctx_id=ctx_id)
+        print("[DEBUG] Model loaded, processing image...")
+        
         cv_image = _load_image(img_bytes)
+        print(f"[DEBUG] Image shape: {cv_image.shape}")
         
         # 얼굴 감지 및 임베딩 추출
         faces = model.get(cv_image)
+        print(f"[DEBUG] Detected faces: {len(faces) if faces else 0}")
         
         if not faces or len(faces) == 0:
+            print("[DEBUG] No faces detected")
             return None
         
         # 첫 번째 얼굴의 정규화된 임베딩 반환 (normed_embedding)
         embedding = faces[0].normed_embedding.astype("float32")
+        print(f"[DEBUG] Embedding shape: {embedding.shape}")
         
         # 캐시에 저장
         if use_cache and image_path:
             cache_path = _get_cache_path(image_path)
             _save_embedding_to_cache(cache_path, embedding)
+            print(f"[DEBUG] Saved to cache: {cache_path}")
         
         return embedding
         
