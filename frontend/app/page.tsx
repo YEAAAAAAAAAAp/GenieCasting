@@ -764,7 +764,7 @@ export default function Page() {
                             <div className="relative w-20 h-20 shrink-0 bg-slate-800/60 rounded-xl overflow-hidden border border-slate-600/50 shadow-lg group-hover/item:shadow-xl group-hover/item:shadow-blue-500/20 transition-all duration-300">
                               {r.image_url ? (
                                 <Image
-                                  src={r.image_url.startsWith('http') ? r.image_url : `${backendPublic}${r.image_url}`}
+                                  src={`${backendPublic}${r.image_url}`}
                                   alt={r.name}
                                   fill
                                   className="object-cover group-hover/item:scale-110 transition-transform duration-500"
