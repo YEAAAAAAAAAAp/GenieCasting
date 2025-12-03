@@ -62,6 +62,8 @@ export async function POST(req: Request) {
         }
         return item
       })
+    }
+    
     return NextResponse.json(data, { status: resp.status })
   } catch (e: any) {
     console.error('[API Route Exception]', e)
@@ -70,7 +72,5 @@ export async function POST(req: Request) {
       error: e?.toString(),
       stack: e?.stack 
     }, { status: 500 })
-  }
-}   return NextResponse.json({ detail: e?.message || 'Proxy error' }, { status: 500 })
   }
 }
