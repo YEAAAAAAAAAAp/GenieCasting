@@ -20,6 +20,22 @@ export async function POST(req: Request) {
       body: formData,
     })
     const data = await resp.json()
+    
+    // 상대 경로를 절대 URL로 변환
+    if (data.items && Array.isArray(data.items)) {
+      data.items = data.items.map((item: any) => {
+        if (item.results && Array.isArray(item.results)) {
+          item.results = item.results.map((result: any) => {
+            if (result.image_url && result.image_url.startsWith('/')) {
+              result.image_url = `${backend}${result.image_url}`
+            }
+            return result
+          })
+        }
+        return item
+      })
+    }
+    
     return NextResponse.json(data, { status: resp.status })
   } catch (e: any) {
     return NextResponse.json({ detail: e?.message || 'Proxy error' }, { status: 500 })
