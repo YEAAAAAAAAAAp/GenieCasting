@@ -17,11 +17,6 @@ ENV/
 .vscode/
 .idea/
 
-# Data & models
-backend/app/data/
-!backend/app/data/.gitkeep
-.insightface/
-
 # Node
 node_modules/
 .next/
