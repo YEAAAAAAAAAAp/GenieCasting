@@ -41,11 +41,30 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     # HuggingFace Hub에서 모델 다운로드
     model_dir = Path("models/auraface")
     
-    # 모델 파일 확인 및 다운로드 (필요시)
-    model_files = list(model_dir.glob("*.onnx")) if model_dir.exists() else []
+    # 모델 파일 검증 함수
+    def validate_onnx_files(directory: Path) -> tuple[bool, list[Path]]:
+        """ONNX 파일이 손상되지 않았는지 검증"""
+        if not directory.exists():
+            return False, []
+        
+        onnx_files = list(directory.glob("*.onnx"))
+        if len(onnx_files) < 3:
+            return False, onnx_files
+        
+        # 파일 크기 검증 (손상된 파일은 0 바이트이거나 매우 작음)
+        valid_files = []
+        for file in onnx_files:
+            size = file.stat().st_size
+            if size > 1024 * 100:  # 최소 100KB 이상
+                valid_files.append(file)
+        
+        return len(valid_files) >= 3, valid_files
     
-    if not model_dir.exists() or len(model_files) < 3:
-        print(f"📥 모델 파일 다운로드 필요 (현재: {len(model_files)}개 ONNX 파일)")
+    # 모델 파일 확인 및 다운로드 (필요시)
+    is_valid, model_files = validate_onnx_files(model_dir)
+    
+    if not is_valid:
+        print(f"📥 모델 파일 다운로드 필요 (현재: {len(model_files)}개 유효 ONNX 파일)")
         print("⏳ HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중... (약 5-10분 소요)")
         print("⚠️ 첫 배포 시에만 실행되며, 이후에는 캐시된 모델을 사용합니다.")
         
@@ -53,14 +72,21 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
             # 기존 불완전한 파일 삭제
             if model_dir.exists():
                 import shutil
+                print("🗑️ 손상된 기존 모델 파일 삭제 중...")
                 shutil.rmtree(model_dir, ignore_errors=True)
             
-            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+            # 재다운로드
+            model_dir.parent.mkdir(parents=True, exist_ok=True)
+            snapshot_download(
+                "fal/AuraFace-v1", 
+                local_dir=str(model_dir),
+                resume_download=True  # 중단된 다운로드 재개
+            )
             print("✅ 모델 다운로드 완료")
             
             # 다운로드 성공 확인
-            model_files = list(model_dir.glob("*.onnx"))
-            if len(model_files) < 3:
+            is_valid, model_files = validate_onnx_files(model_dir)
+            if not is_valid:
                 raise RuntimeError(f"모델 다운로드 후에도 파일이 불완전합니다: {len(model_files)}개")
                 
         except Exception as e:
@@ -72,7 +98,7 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
                 "3. 또는 Git LFS를 사용하여 대용량 모델 파일을 관리하세요."
             )
     
-    print(f"✅ 모델 파일 확인 완료: {len(model_files)}개 ONNX 파일")
+    print(f"✅ 모델 파일 검증 완료: {len(model_files)}개 유효 ONNX 파일")
     
     # 모델 초기화 (CPU만 사용 - CUDA가 없을 경우 경고 방지)
     model = FaceAnalysis(
