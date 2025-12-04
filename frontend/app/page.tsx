@@ -7,6 +7,7 @@ import PremiumModal from './components/PremiumModal'
 import UserInfoModal from './components/UserInfoModal'
 import SubscriptionBadge from './components/SubscriptionBadge'
 import { PLAN_LIMITS } from './types/subscription'
+import { logEvent, setUserProperties, logTiming } from './lib/analytics'
 
 type MatchResult = {
   name: string
@@ -49,6 +50,15 @@ export default function Page() {
 
   const backendPublic = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 
+  // 사용자 속성 업데이트
+  useEffect(() => {
+    setUserProperties({
+      user_type: isPremium ? 'premium' : 'free',
+      images_used: subscription.maxImages - remainingImages,
+      images_remaining: remainingImages
+    })
+  }, [isPremium, remainingImages, subscription.maxImages])
+
   // Generate floating particles on mount
   useEffect(() => {
     const newParticles = Array.from({ length: 20 }, (_, i) => ({
@@ -70,6 +80,11 @@ export default function Page() {
     
     // 구독 제한 확인 - 이미지 수
     if (!canUseImages(files.length)) {
+      logEvent({ 
+        category: 'limit_reached', 
+        action: 'max_images_exceeded', 
+        label: `attempted_${files.length}_images` 
+      })
       setPremiumModalReason('images')
       setShowPremiumModal(true)
       return
@@ -77,10 +92,21 @@ export default function Page() {
     
     // 구독 제한 확인 - 배우 수
     if (!canUseActors(topK)) {
+      logEvent({ 
+        category: 'limit_reached', 
+        action: 'max_actors_exceeded', 
+        label: `attempted_${topK}_actors` 
+      })
       setPremiumModalReason('actors')
       setShowPremiumModal(true)
       return
     }
+    
+    logEvent({ 
+      category: 'user_action', 
+      action: 'analysis_started', 
+      label: `${files.length}_images_${topK}_actors` 
+    })
     
     const form = new FormData()
     files.forEach((f: File) => form.append('files', f))
@@ -93,6 +119,8 @@ export default function Page() {
     
     setLoading(true)
     setProgress(0)
+    
+    const startTime = Date.now()
     
     // Simulate progress for better UX
     const progressInterval = setInterval(() => {
@@ -161,9 +189,19 @@ export default function Page() {
       setResults(items)
       setProgress(100)
       
+      // 분석 완료 시간 측정
+      const analysisTime = Date.now() - startTime
+      logTiming('analysis', 'completion_time', analysisTime, `${files.length}_images`)
+      
       // 성공적으로 처리된 이미지 개수 계산
       const successCount = items.filter(item => item.results.length > 0 || item.referenceScore !== undefined).length
       const errorCount = files.length - successCount
+      
+      logEvent({ 
+        category: 'user_action', 
+        action: 'analysis_completed', 
+        label: `${successCount}_success_${errorCount}_failed` 
+      })
       
       // 이미지 사용 기록
       if (successCount > 0) {
@@ -190,6 +228,13 @@ export default function Page() {
   const onInputChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const list = Array.from(evt.target.files || [])
     setFiles(list)
+    if (list.length > 0) {
+      logEvent({ 
+        category: 'user_action', 
+        action: 'file_uploaded', 
+        label: `${list.length}_files_selected` 
+      })
+    }
   }
 
   const onDrop = (evt: React.DragEvent<HTMLDivElement>) => {
@@ -198,6 +243,13 @@ export default function Page() {
     const list = Array.from(evt.dataTransfer.files || []) as File[]
     const onlyImages = list.filter((f: File) => f.type.startsWith('image/'))
     setFiles((prev: File[]) => [...prev, ...onlyImages])
+    if (onlyImages.length > 0) {
+      logEvent({ 
+        category: 'user_action', 
+        action: 'file_uploaded', 
+        label: `${onlyImages.length}_files_dropped` 
+      })
+    }
   }
 
   const onDragOver = (evt: React.DragEvent<HTMLDivElement>) => {
@@ -541,6 +593,11 @@ export default function Page() {
                             </p>
                             <button
                               onClick={() => {
+                                logEvent({ 
+                                  category: 'cta_click', 
+                                  action: 'upload_area_premium_link', 
+                                  label: `remaining_images_${remainingImages}` 
+                                })
                                 setPremiumModalReason('general')
                                 setShowPremiumModal(true)
                               }}
@@ -636,6 +693,11 @@ export default function Page() {
                       </div>
                       <button
                         onClick={() => {
+                          logEvent({ 
+                            category: 'cta_click', 
+                            action: 'topk_slider_upgrade_link', 
+                            label: `current_topk_${topK}` 
+                          })
                           setPremiumModalReason('actors')
                           setShowPremiumModal(true)
                         }}
@@ -1022,6 +1084,11 @@ export default function Page() {
                       <div className="flex-shrink-0">
                         <button
                           onClick={() => {
+                            logEvent({ 
+                              category: 'cta_click', 
+                              action: 'results_banner_premium_button', 
+                              label: `after_${results.length}_results` 
+                            })
                             setPremiumModalReason('general')
                             setShowPremiumModal(true)
                           }}
@@ -1268,8 +1335,20 @@ export default function Page() {
       {/* Premium Modal */}
       <PremiumModal
         isOpen={showPremiumModal}
-        onClose={() => setShowPremiumModal(false)}
+        onClose={() => {
+          logEvent({ 
+            category: 'conversion_funnel', 
+            action: 'premium_modal_closed', 
+            label: premiumModalReason 
+          })
+          setShowPremiumModal(false)
+        }}
         onUpgrade={() => {
+          logEvent({ 
+            category: 'conversion_funnel', 
+            action: 'premium_modal_upgrade_clicked', 
+            label: premiumModalReason 
+          })
           setShowPremiumModal(false)
           setShowUserInfoModal(true)
         }}
@@ -1279,9 +1358,22 @@ export default function Page() {
       {/* User Info Modal */}
       <UserInfoModal
         isOpen={showUserInfoModal}
-        onClose={() => setShowUserInfoModal(false)}
+        onClose={() => {
+          logEvent({ 
+            category: 'conversion_funnel', 
+            action: 'user_info_modal_closed', 
+            label: 'without_submit' 
+          })
+          setShowUserInfoModal(false)
+        }}
         onSubmit={async (name, email) => {
           try {
+            logEvent({ 
+              category: 'conversion_funnel', 
+              action: 'user_info_submitted', 
+              label: `name_${name.length}_chars` 
+            })
+            
             const response = await fetch('/api/premium-signup', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1292,8 +1384,18 @@ export default function Page() {
               throw new Error('Failed to submit')
             }
 
+            logEvent({ 
+              category: 'conversion_funnel', 
+              action: 'premium_upgraded', 
+              label: 'trial_started' 
+            })
+            
             // 프리미엄으로 업그레이드
             upgradeToPremium()
+            setUserProperties({ 
+              user_type: 'premium',
+              images_remaining: -1 
+            })
             setSuccessMessage('🎉 프리미엄 체험이 시작되었습니다!')
             setTimeout(() => setSuccessMessage(null), 5000)
           } catch (error) {
