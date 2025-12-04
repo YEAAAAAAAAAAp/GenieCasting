@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       resp = await fetch(backendUrl.toString(), {
         method: 'POST',
         body: formData,
-        signal: AbortSignal.timeout(895000), // 895초 타임아웃 (Vercel 900초보다 짧게)
+        signal: AbortSignal.timeout(595000), // 595초 타임아웃 (Vercel 600초보다 짧게)
         // Node.js fetch 옵션
         keepalive: true,
       })

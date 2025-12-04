@@ -1,10 +1,10 @@
 {
   "functions": {
     "app/api/match-actors-batch/route.ts": {
-      "maxDuration": 900
+      "maxDuration": 600
     },
     "app/api/match-actors/route.ts": {
-      "maxDuration": 900
+      "maxDuration": 600
     }
   }
 }
