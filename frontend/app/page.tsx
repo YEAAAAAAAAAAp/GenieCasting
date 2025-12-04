@@ -520,12 +520,38 @@ export default function Page() {
                     </p>
                     <p className="text-sm text-purple-300">
                       오디션 지원 배우들의 프로필 사진을 여러 장 업로드 • JPG, PNG, WEBP
-                      {!isPremium && (
-                        <span className="ml-2 px-2 py-1 bg-amber-400/20 text-amber-300 rounded text-xs">
-                          무료: 최대 {subscription.maxImages}개
-                        </span>
-                      )}
                     </p>
+                    {!isPremium && (
+                      <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30 backdrop-blur-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                            <svg className="w-6 h-6 text-purple-900" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L11 4.323V3a1 1 0 011-1zm-5 8.274l-.818 2.552c-.25.78.137 1.619.918 1.88.781.26 1.619-.137 1.88-.918l.818-2.552a1 1 0 00-.285-1.05A3.989 3.989 0 0110 11a3.989 3.989 0 01-2.667-1.019 1 1 0 00-.285-1.05l.818-2.552c.26-.781-.137-1.619-.918-1.88-.781-.26-1.619.137-1.88.918L4.05 7.97z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-semibold text-white">무료 플랜</h4>
+                              <span className="px-2 py-0.5 bg-amber-400/20 text-amber-300 rounded text-xs font-medium">
+                                {remainingImages}/{subscription.maxImages}개 남음
+                              </span>
+                            </div>
+                            <p className="text-xs text-purple-300 leading-relaxed mb-2">
+                              이번 달 {subscription.maxImages}개 이미지 분석 가능 • 최대 {subscription.maxActors}명 배우 비교
+                            </p>
+                            <button
+                              onClick={() => {
+                                setPremiumModalReason('general')
+                                setShowPremiumModal(true)
+                              }}
+                              className="text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2 transition-colors"
+                            >
+                              프리미엄으로 무제한 이용하기 →
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <label className="relative group cursor-pointer">
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-fuchsia-500 to-purple-600 rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
@@ -599,6 +625,27 @@ export default function Page() {
                   <span className="absolute left-1/2 -translate-x-1/2">{isPremium ? 25 : Math.floor(subscription.maxActors / 2)}</span>
                   <span className="absolute right-0">{isPremium ? 50 : subscription.maxActors}</span>
                 </div>
+                {!isPremium && (
+                  <div className="mt-4 p-3 rounded-lg bg-purple-800/40 border border-purple-600/40">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-purple-300">최대 {subscription.maxActors}명까지 비교</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setPremiumModalReason('actors')
+                          setShowPremiumModal(true)
+                        }}
+                        className="text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors"
+                      >
+                        50명까지 →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Magical Progress Bar */}
@@ -916,12 +963,119 @@ export default function Page() {
               </div>
             </section>
           )}
+
+          {/* Premium Upgrade Banner - 결과가 있을 때만 표시 */}
+          {!isPremium && results.length > 0 && (
+            <section className="mt-12 mb-12">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-fuchsia-900 to-purple-900 border border-amber-400/50 shadow-2xl shadow-amber-400/20">
+                {/* Background decorations */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-3xl" />
+                
+                <div className="relative px-8 py-12 md:px-12">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex flex-col md:flex-row items-center gap-8">
+                      {/* Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-2xl animate-bounce-slow">
+                          <svg className="w-14 h-14 text-purple-900" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L11 4.323V3a1 1 0 011-1zm-5 8.274l-.818 2.552c-.25.78.137 1.619.918 1.88.781.26 1.619-.137 1.88-.918l.818-2.552a1 1 0 00-.285-1.05A3.989 3.989 0 0110 11a3.989 3.989 0 01-2.667-1.019 1 1 0 00-.285-1.05l.818-2.552c.26-.781-.137-1.619-.918-1.88-.781-.26-1.619.137-1.88.918L4.05 7.97z" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 text-center md:text-left">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/30 mb-3">
+                          <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                          <span className="text-xs font-semibold text-amber-300">LIMITED OFFER</span>
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                          더 많은 배우를 비교하고 싶으신가요?
+                        </h3>
+                        <p className="text-purple-200 text-sm md:text-base mb-4">
+                          프리미엄으로 무제한 이미지 분석 • 최대 50명 배우 비교 • 우선 처리 지원
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
+                          <div className="flex items-center gap-2 text-sm text-purple-300">
+                            <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            무제한 분석
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-purple-300">
+                            <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            50명 비교
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-purple-300">
+                            <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            우선 지원
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* CTA */}
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setPremiumModalReason('general')
+                            setShowPremiumModal(true)
+                          }}
+                          className="group relative px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-purple-900 font-bold text-lg transition-all transform hover:scale-105 shadow-2xl hover:shadow-amber-400/50"
+                        >
+                          <span className="relative z-10 flex items-center gap-2">
+                            프리미엄 체험하기
+                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </span>
+                        </button>
+                        <p className="text-center text-xs text-purple-300 mt-2">
+                          월 ₩4,900 • 언제든 해지 가능
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Magical Genie Footer */}
         <footer className="relative z-10 mt-24 backdrop-blur-2xl bg-purple-900/80 border-t border-fuchsia-700/30 shadow-2xl shadow-purple-500/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+              {/* Premium CTA */}
+              {!isPremium && (
+                <div className="md:col-span-1">
+                  <div className="p-5 rounded-xl bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center mb-3 shadow-lg">
+                      <svg className="w-6 h-6 text-purple-900" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-white font-semibold mb-2 text-sm">프리미엄 플랜</h4>
+                    <p className="text-xs text-purple-300 mb-3 leading-relaxed">
+                      무제한 이미지 분석과 50명 배우 비교를 경험하세요
+                    </p>
+                    <button
+                      onClick={() => {
+                        setPremiumModalReason('general')
+                        setShowPremiumModal(true)
+                      }}
+                      className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-purple-900 font-semibold text-xs transition-all transform hover:scale-105 shadow-lg"
+                    >
+                      지금 시작하기
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Brand Section */}
               <div className="md:col-span-1">
                 <div className="flex items-center gap-3 mb-4">
@@ -946,6 +1100,32 @@ export default function Page() {
                   <span>서비스 정상 운영중</span>
                 </div>
               </div>
+
+              {/* Premium CTA */}
+              {!isPremium && (
+                <div className="md:col-span-1">
+                  <div className="p-5 rounded-xl bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center mb-3 shadow-lg">
+                      <svg className="w-6 h-6 text-purple-900" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-white font-semibold mb-2 text-sm">프리미엄 플랜</h4>
+                    <p className="text-xs text-purple-300 mb-3 leading-relaxed">
+                      무제한 이미지 분석과 50명 배우 비교를 경험하세요
+                    </p>
+                    <button
+                      onClick={() => {
+                        setPremiumModalReason('general')
+                        setShowPremiumModal(true)
+                      }}
+                      className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-purple-900 font-semibold text-xs transition-all transform hover:scale-105 shadow-lg"
+                    >
+                      지금 시작하기
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Product Links */}
               <div>
