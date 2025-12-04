@@ -24,9 +24,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Create Notion page
+    // Convert to UUID format if needed (insert hyphens at positions 8, 12, 16, 20)
+    const formattedDbId = NOTION_DB_ID!.length === 32 && !NOTION_DB_ID!.includes('-')
+      ? `${NOTION_DB_ID!.slice(0, 8)}-${NOTION_DB_ID!.slice(8, 12)}-${NOTION_DB_ID!.slice(12, 16)}-${NOTION_DB_ID!.slice(16, 20)}-${NOTION_DB_ID!.slice(20)}`
+      : NOTION_DB_ID!
+    
+    console.log('[Notion API] DB ID conversion:', {
+      original: NOTION_DB_ID,
+      formatted: formattedDbId
+    })
+
     const notionPayload = {
       parent: {
-        database_id: NOTION_DB_ID,
+        database_id: formattedDbId,
       },
       properties: {
         '이름': {
