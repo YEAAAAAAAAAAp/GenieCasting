@@ -739,23 +739,23 @@ export default function Page() {
                   </button>
                 </div>
               </div>
-              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {results.map((res, i) => (
-                  <div key={`res-${i}`} className="group backdrop-blur-xl bg-slate-900/50 border border-slate-700/40 rounded-2xl overflow-hidden hover:border-slate-600/60 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:scale-[1.02] transform">
-                    <div className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 border-b border-slate-700/50 p-5 backdrop-blur-xl">
-                      <div className="flex items-center gap-4">
-                        <span className="w-9 h-9 bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-slate-600/50 rounded-xl flex items-center justify-center text-sm font-bold shadow-lg">
+                  <div key={`res-${i}`} className="group backdrop-blur-xl bg-slate-900/50 border border-slate-700/40 rounded-xl overflow-hidden hover:border-slate-600/60 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-500 hover:scale-[1.02] transform">
+                    <div className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 border-b border-slate-700/50 p-3 backdrop-blur-xl">
+                      <div className="flex items-center gap-3">
+                        <span className="w-7 h-7 bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-slate-600/50 rounded-lg flex items-center justify-center text-xs font-bold shadow-lg">
                           {i + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-white text-base truncate">
+                          <h3 className="font-semibold text-white text-sm truncate">
                             {res.filename}
                           </h3>
                         </div>
                       </div>
-                      {/* 업로드한 이미지 썸네일 */}
+                      {/* 업로드한 이미지 썸네일 - 더 작게 */}
                       {res.imageUrl && (
-                        <div className="mt-3 relative w-full aspect-video rounded-xl overflow-hidden border border-slate-600/50">
+                        <div className="mt-2 relative w-full aspect-video rounded-lg overflow-hidden border border-slate-600/50">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img 
                             src={res.imageUrl} 
@@ -765,59 +765,59 @@ export default function Page() {
                         </div>
                       )}
                     </div>
-                    <div className="p-5 space-y-4">
-                      {/* 레퍼런스 모드: 점수만 표시 */}
+                    <div className="p-3 space-y-3">
+                      {/* 레퍼런스 모드: 점수만 표시 (최적화됨) */}
                       {targetActor && res.referenceScore !== undefined ? (
-                        <div className="text-center py-8">
-                          <div className="mb-6">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 border-2 border-amber-400/60 flex items-center justify-center">
-                              <span className="text-4xl">🎯</span>
+                        <div className="text-center py-6">
+                          <div className="mb-4">
+                            <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-fuchsia-500/20 border border-amber-400/50 flex items-center justify-center">
+                              <span className="text-3xl">🎯</span>
                             </div>
-                            <h4 className="text-lg font-bold text-white mb-2">
+                            <h4 className="text-base font-bold text-white">
                               <span className="text-amber-300">&apos;{res.referenceActorName}&apos;</span> 유사도
                             </h4>
                           </div>
                           
-                          {/* 유사도 점수 표시 */}
-                          <div className="space-y-4">
+                          {/* 유사도 점수 표시 - 더 작게 */}
+                          <div className="space-y-3">
                             <div className="relative">
-                              <div className="w-32 h-32 mx-auto">
+                              <div className="w-24 h-24 mx-auto">
                                 <svg className="w-full h-full transform -rotate-90">
                                   <circle
-                                    cx="64"
-                                    cy="64"
-                                    r="56"
+                                    cx="48"
+                                    cy="48"
+                                    r="42"
                                     stroke="currentColor"
-                                    strokeWidth="8"
+                                    strokeWidth="6"
                                     fill="none"
                                     className="text-slate-700/50"
                                   />
                                   <circle
-                                    cx="64"
-                                    cy="64"
-                                    r="56"
+                                    cx="48"
+                                    cy="48"
+                                    r="42"
                                     stroke="currentColor"
-                                    strokeWidth="8"
+                                    strokeWidth="6"
                                     fill="none"
-                                    strokeDasharray={`${2 * Math.PI * 56}`}
-                                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - res.referenceScore)}`}
+                                    strokeDasharray={`${2 * Math.PI * 42}`}
+                                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - res.referenceScore)}`}
                                     className="text-amber-400 transition-all duration-1000"
                                     strokeLinecap="round"
                                   />
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
                                   <div className="text-center">
-                                    <div className="text-3xl font-bold bg-gradient-to-r from-amber-300 to-fuchsia-400 bg-clip-text text-transparent">
+                                    <div className="text-2xl font-bold bg-gradient-to-r from-amber-300 to-fuchsia-400 bg-clip-text text-transparent">
                                       {(res.referenceScore * 100).toFixed(1)}
                                     </div>
-                                    <div className="text-xs text-slate-400 mt-1">유사도</div>
+                                    <div className="text-[10px] text-slate-400 -mt-0.5">유사도</div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30">
-                              <p className="text-sm text-amber-200">
+                            <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-fuchsia-500/10 border border-amber-400/30">
+                              <p className="text-xs text-amber-200">
                                 {res.referenceScore >= 0.7 ? '🌟 매우 높은 유사도!' :
                                  res.referenceScore >= 0.5 ? '✨ 높은 유사도' :
                                  res.referenceScore >= 0.3 ? '💫 중간 유사도' :
