@@ -127,10 +127,11 @@ async def match_actors_batch(
             if len(contents) > 10 * 1024 * 1024:
                 outputs.append({"filename": f.filename, "error": "파일이 너무 큼(>10MB)"})
                 continue
-        try:
-            # 업로드된 파일의 경우 파일명을 기반으로 캐시 경로 생성
-            image_path = f.filename if f.filename else None
-            q = image_embedding(contents, image_path=image_path, use_cache=True)
+            
+            try:
+                # 업로드된 파일의 경우 파일명을 기반으로 캐시 경로 생성
+                image_path = f.filename if f.filename else None
+                q = image_embedding(contents, image_path=image_path, use_cache=True)
             if q is None:
                 outputs.append({"filename": f.filename, "error": "얼굴을 감지할 수 없습니다"})
                 continue
@@ -193,18 +194,18 @@ async def match_actors_batch(
                 
                 result = {"filename": f.filename, "results": items}
                 outputs.append(result)
-        except FileNotFoundError as e:
-            print(f"[ERROR] FileNotFoundError for {f.filename}: {e}")
-            raise HTTPException(status_code=503, detail=str(e))
-        except Exception as e:
-            print(f"[ERROR] Exception processing {f.filename}: {e}")
-            import traceback
-            traceback.print_exc()
-            outputs.append({"filename": f.filename, "error": f"처리 실패: {e}"})
-        finally:
-            # 메모리 정리
-            del contents
-            gc.collect()
+            except FileNotFoundError as e:
+                print(f"[ERROR] FileNotFoundError for {f.filename}: {e}")
+                raise HTTPException(status_code=503, detail=str(e))
+            except Exception as e:
+                print(f"[ERROR] Exception processing {f.filename}: {e}")
+                import traceback
+                traceback.print_exc()
+                outputs.append({"filename": f.filename, "error": f"처리 실패: {e}"})
+            finally:
+                # 메모리 정리
+                del contents
+                gc.collect()
     
     except Exception as e:
         print(f"[CRITICAL ERROR] Batch processing failed: {e}")
