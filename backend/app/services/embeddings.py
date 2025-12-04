@@ -41,25 +41,36 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     # HuggingFace Hub에서 모델 다운로드
     model_dir = Path("models/auraface")
     
-    # 배포 환경: 모델이 Git에 포함되어 있어야 함
-    if not model_dir.exists():
-        raise RuntimeError(
-            f"모델 디렉토리가 없습니다: {model_dir}\n"
-            "배포 전에 로컬에서 모델을 다운로드하고 Git에 커밋해야 합니다:\n"
-            "1. 로컬에서 서버 실행하여 모델 자동 다운로드\n"
-            "2. git add models/auraface/\n"
-            "3. git commit -m 'Add AuraFace model files'\n"
-            "4. git push"
-        )
+    # 모델 파일 확인 및 다운로드 (필요시)
+    model_files = list(model_dir.glob("*.onnx")) if model_dir.exists() else []
     
-    # ONNX 파일 존재 확인
-    model_files = list(model_dir.glob("*.onnx"))
-    if len(model_files) < 3:
-        raise RuntimeError(
-            f"모델 파일이 불완전합니다 (ONNX 파일: {len(model_files)}개).\n"
-            f"필요: 최소 3개, 현재: {[f.name for f in model_files]}\n"
-            "배포 전에 모든 모델 파일을 Git에 커밋해야 합니다."
-        )
+    if not model_dir.exists() or len(model_files) < 3:
+        print(f"📥 모델 파일 다운로드 필요 (현재: {len(model_files)}개 ONNX 파일)")
+        print("⏳ HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중... (약 5-10분 소요)")
+        print("⚠️ 첫 배포 시에만 실행되며, 이후에는 캐시된 모델을 사용합니다.")
+        
+        try:
+            # 기존 불완전한 파일 삭제
+            if model_dir.exists():
+                import shutil
+                shutil.rmtree(model_dir, ignore_errors=True)
+            
+            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
+            print("✅ 모델 다운로드 완료")
+            
+            # 다운로드 성공 확인
+            model_files = list(model_dir.glob("*.onnx"))
+            if len(model_files) < 3:
+                raise RuntimeError(f"모델 다운로드 후에도 파일이 불완전합니다: {len(model_files)}개")
+                
+        except Exception as e:
+            raise RuntimeError(
+                f"모델 다운로드 실패: {e}\n"
+                "해결 방법:\n"
+                "1. Railway에서 첫 배포 시 타임아웃이 발생할 수 있습니다.\n"
+                "2. 재배포하면 Railway가 이전 빌드를 캐시하여 성공합니다.\n"
+                "3. 또는 Git LFS를 사용하여 대용량 모델 파일을 관리하세요."
+            )
     
     print(f"✅ 모델 파일 확인 완료: {len(model_files)}개 ONNX 파일")
     
