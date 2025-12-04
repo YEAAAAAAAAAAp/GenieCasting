@@ -40,50 +40,36 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     
     # HuggingFace Hub에서 모델 다운로드
     model_dir = Path("models/auraface")
-    try:
-        if not model_dir.exists():
-            print("📥 HuggingFace Hub에서 AuraFace-v1 모델 다운로드 중...")
-            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
-            print("✅ 모델 다운로드 완료")
-        else:
-            # 모델 파일이 손상되었을 수 있으므로 확인
-            model_files = list(model_dir.glob("*.onnx"))
-            if not model_files or len(model_files) < 3:
-                print("⚠️ 모델 파일이 불완전합니다. 다시 다운로드합니다...")
-                import shutil
-                shutil.rmtree(model_dir, ignore_errors=True)
-                snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
-                print("✅ 모델 재다운로드 완료")
-    except Exception as e:
-        print(f"⚠️ 경고: 모델 다운로드 중 오류 발생: {e}")
-        if not model_dir.exists():
-            raise RuntimeError(f"모델을 다운로드할 수 없습니다: {e}")
-        print("기존 다운로드된 모델을 사용합니다.")
+    
+    # 배포 환경: 모델이 Git에 포함되어 있어야 함
+    if not model_dir.exists():
+        raise RuntimeError(
+            f"모델 디렉토리가 없습니다: {model_dir}\n"
+            "배포 전에 로컬에서 모델을 다운로드하고 Git에 커밋해야 합니다:\n"
+            "1. 로컬에서 서버 실행하여 모델 자동 다운로드\n"
+            "2. git add models/auraface/\n"
+            "3. git commit -m 'Add AuraFace model files'\n"
+            "4. git push"
+        )
+    
+    # ONNX 파일 존재 확인
+    model_files = list(model_dir.glob("*.onnx"))
+    if len(model_files) < 3:
+        raise RuntimeError(
+            f"모델 파일이 불완전합니다 (ONNX 파일: {len(model_files)}개).\n"
+            f"필요: 최소 3개, 현재: {[f.name for f in model_files]}\n"
+            "배포 전에 모든 모델 파일을 Git에 커밋해야 합니다."
+        )
+    
+    print(f"✅ 모델 파일 확인 완료: {len(model_files)}개 ONNX 파일")
     
     # 모델 초기화 (CPU만 사용 - CUDA가 없을 경우 경고 방지)
-    try:
-        model = FaceAnalysis(
-            name="auraface",
-            providers=["CPUExecutionProvider"],  # CPU만 사용
-            root=".",
-        )
-        model.prepare(ctx_id=ctx_id, det_size=(640, 640))
-    except Exception as e:
-        # 모델 파일이 손상되었을 경우 재다운로드 시도
-        if "INVALID_PROTOBUF" in str(e) or "Protobuf parsing failed" in str(e):
-            print("❌ 모델 파일이 손상되었습니다. 다시 다운로드합니다...")
-            import shutil
-            shutil.rmtree(model_dir, ignore_errors=True)
-            snapshot_download("fal/AuraFace-v1", local_dir=str(model_dir))
-            print("✅ 모델 재다운로드 완료. 다시 시도합니다...")
-            model = FaceAnalysis(
-                name="auraface",
-                providers=["CPUExecutionProvider"],
-                root=".",
-            )
-            model.prepare(ctx_id=ctx_id, det_size=(640, 640))
-        else:
-            raise
+    model = FaceAnalysis(
+        name="auraface",
+        providers=["CPUExecutionProvider"],  # CPU만 사용
+        root=".",
+    )
+    model.prepare(ctx_id=ctx_id, det_size=(640, 640))
     
     print("✅ AuraFace-v1 모델 로딩 완료")
     return model
