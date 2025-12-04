@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useSubscription } from './hooks/useSubscription'
 import PremiumModal from './components/PremiumModal'
+import UserInfoModal from './components/UserInfoModal'
 import SubscriptionBadge from './components/SubscriptionBadge'
 import { PLAN_LIMITS } from './types/subscription'
 
@@ -44,6 +45,7 @@ export default function Page() {
   const { subscription, canUseImages, useImages, canUseActors, upgradeToPremium, remainingImages, isPremium } = useSubscription()
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [premiumModalReason, setPremiumModalReason] = useState<'images' | 'actors' | 'general'>('general')
+  const [showUserInfoModal, setShowUserInfoModal] = useState(false)
 
   const backendPublic = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 
@@ -1088,10 +1090,37 @@ export default function Page() {
         isOpen={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
         onUpgrade={() => {
-          upgradeToPremium()
           setShowPremiumModal(false)
+          setShowUserInfoModal(true)
         }}
         reason={premiumModalReason}
+      />
+
+      {/* User Info Modal */}
+      <UserInfoModal
+        isOpen={showUserInfoModal}
+        onClose={() => setShowUserInfoModal(false)}
+        onSubmit={async (name, email) => {
+          try {
+            const response = await fetch('/api/premium-signup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, email }),
+            })
+
+            if (!response.ok) {
+              throw new Error('Failed to submit')
+            }
+
+            // 프리미엄으로 업그레이드
+            upgradeToPremium()
+            setSuccessMessage('🎉 프리미엄 체험이 시작되었습니다!')
+            setTimeout(() => setSuccessMessage(null), 5000)
+          } catch (error) {
+            console.error('Premium signup error:', error)
+            throw error
+          }
+        }}
       />
     </main>
   )

@@ -99,7 +99,7 @@ export default function PremiumModal({ isOpen, onClose, onUpgrade, reason = 'gen
               onClick={onUpgrade}
               className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-purple-900 font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg"
             >
-              프리미엄 시작하기 - ₩{PLAN_LIMITS.premium.price.toLocaleString()}/월
+              프리미엄 체험하기 - ₩{PLAN_LIMITS.premium.price.toLocaleString()}/월
             </button>
             <button
               onClick={onClose}
