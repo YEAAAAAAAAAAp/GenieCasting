@@ -132,68 +132,68 @@ async def match_actors_batch(
                 # 업로드된 파일의 경우 파일명을 기반으로 캐시 경로 생성
                 image_path = f.filename if f.filename else None
                 q = image_embedding(contents, image_path=image_path, use_cache=True)
-            if q is None:
-                outputs.append({"filename": f.filename, "error": "얼굴을 감지할 수 없습니다"})
-                continue
-            # 레퍼런스 배우가 지정된 경우와 아닌 경우를 분리 처리
-            if reference_actor:
-                # 레퍼런스 모드: 전체 인덱스에서 레퍼런스 배우를 찾아서 유사도 계산
-                try:
-                    reference_result = INDEX.find_actor_by_name(q, reference_actor)
-                except Exception as e:
-                    outputs.append({
+                if q is None:
+                    outputs.append({"filename": f.filename, "error": "얼굴을 감지할 수 없습니다"})
+                    continue
+                # 레퍼런스 배우가 지정된 경우와 아닌 경우를 분리 처리
+                if reference_actor:
+                    # 레퍼런스 모드: 전체 인덱스에서 레퍼런스 배우를 찾아서 유사도 계산
+                    try:
+                        reference_result = INDEX.find_actor_by_name(q, reference_actor)
+                    except Exception as e:
+                        outputs.append({
+                            "filename": f.filename,
+                            "error": f"레퍼런스 배우 검색 중 오류: {str(e)}"
+                        })
+                        continue
+                    
+                    if reference_result is None:
+                        # 레퍼런스 배우를 찾지 못한 경우
+                        outputs.append({
+                            "filename": f.filename,
+                            "error": f"레퍼런스 배우 '{reference_actor}'를 데이터베이스에서 찾을 수 없습니다."
+                        })
+                        continue
+                    
+                    reference_idx, reference_score = reference_result
+                    info = INDEX.info(reference_idx)
+                    
+                    # 레퍼런스 모드: 유사도 점수만 반환 (이미지 URL 없음)
+                    result = {
                         "filename": f.filename,
-                        "error": f"레퍼런스 배우 검색 중 오류: {str(e)}"
-                    })
-                    continue
-                
-                if reference_result is None:
-                    # 레퍼런스 배우를 찾지 못한 경우
-                    outputs.append({
+                        "reference_actor_name": info.get("name", f"Actor {reference_idx}"),
+                        "reference_score": reference_score,
+                    }
+                    
+                    # 레퍼런스 배우 기준으로 입력 이미지를 랭킹하기 위해 수집
+                    reference_rankings.append({
                         "filename": f.filename,
-                        "error": f"레퍼런스 배우 '{reference_actor}'를 데이터베이스에서 찾을 수 없습니다."
+                        "reference_score": reference_score,
                     })
-                    continue
-                
-                reference_idx, reference_score = reference_result
-                info = INDEX.info(reference_idx)
-                
-                # 레퍼런스 모드: 유사도 점수만 반환 (이미지 URL 없음)
-                result = {
-                    "filename": f.filename,
-                    "reference_actor_name": info.get("name", f"Actor {reference_idx}"),
-                    "reference_score": reference_score,
-                }
-                
-                # 레퍼런스 배우 기준으로 입력 이미지를 랭킹하기 위해 수집
-                reference_rankings.append({
-                    "filename": f.filename,
-                    "reference_score": reference_score,
-                })
-                outputs.append(result)
-            else:
-                # 일반 모드: Top-K 배우 리스트 반환
-                top = INDEX.topk(q, k=top_k)
-                if len(top) == 0:
-                    outputs.append({
-                        "filename": f.filename, 
-                        "error": "배우 인덱스가 비어있습니다. 먼저 인덱스를 생성해주세요."
-                    })
-                    continue
-                
-                items = []
-                for idx, score in top:
-                    info = INDEX.info(idx)
-                    image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
-                    items.append({
-                        "name": info.get("name", f"Actor {idx}"), 
-                        "score": score, 
-                        "image_url": image_url,
-                        "is_reference": False
-                    })
-                
-                result = {"filename": f.filename, "results": items}
-                outputs.append(result)
+                    outputs.append(result)
+                else:
+                    # 일반 모드: Top-K 배우 리스트 반환
+                    top = INDEX.topk(q, k=top_k)
+                    if len(top) == 0:
+                        outputs.append({
+                            "filename": f.filename, 
+                            "error": "배우 인덱스가 비어있습니다. 먼저 인덱스를 생성해주세요."
+                        })
+                        continue
+                    
+                    items = []
+                    for idx, score in top:
+                        info = INDEX.info(idx)
+                        image_url = f"/actors/{info['image_rel']}" if info.get("image_rel") else None
+                        items.append({
+                            "name": info.get("name", f"Actor {idx}"), 
+                            "score": score, 
+                            "image_url": image_url,
+                            "is_reference": False
+                        })
+                    
+                    result = {"filename": f.filename, "results": items}
+                    outputs.append(result)
             except FileNotFoundError as e:
                 print(f"[ERROR] FileNotFoundError for {f.filename}: {e}")
                 raise HTTPException(status_code=503, detail=str(e))
