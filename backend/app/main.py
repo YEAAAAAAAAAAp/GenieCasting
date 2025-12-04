@@ -3,12 +3,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 from pathlib import Path
+import asyncio
 
 from .models.schemas import MatchResponse, MatchResult
-from .services.embeddings import image_embedding
+from .services.embeddings import image_embedding, get_insightface_model
 from .services.search import INDEX, ACTOR_IMAGES_DIR, DATA_DIR
 
 app = FastAPI(title="Genie Match - Actor Image Matcher", version="1.0.0 (InsightFace)")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 모델 사전 로드 (첫 요청 시간 단축)"""
+    try:
+        print("🚀 서버 시작: 모델 사전 로딩 시작...")
+        # 비동기로 모델 로드 (서버 시작 블로킹 방지)
+        await asyncio.to_thread(get_insightface_model)
+        print("✅ 모델 사전 로딩 완료")
+    except Exception as e:
+        print(f"⚠️ 모델 사전 로딩 실패 (첫 요청 시 로드됨): {e}")
+
 
 # Allow local dev frontend
 app.add_middleware(

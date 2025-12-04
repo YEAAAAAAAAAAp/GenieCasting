@@ -100,15 +100,26 @@ def get_insightface_model(ctx_id: int = -1) -> FaceAnalysis:
     
     print(f"✅ 모델 파일 검증 완료: {len(model_files)}개 유효 ONNX 파일")
     
-    # 모델 초기화 (CPU만 사용 - CUDA가 없을 경우 경고 방지)
+    # 메모리 정리 (모델 로딩 전)
+    import gc
+    gc.collect()
+    
+    # 모델 초기화 (CPU만 사용)
+    print("📦 모델 초기화 시작...")
     model = FaceAnalysis(
         name="auraface",
         providers=["CPUExecutionProvider"],  # CPU만 사용
         root=".",
     )
+    
+    # Railway 업그레이드로 640x640 고해상도 사용 가능
+    print("⚙️ 모델 준비 중 (고해상도 모드)...")
     model.prepare(ctx_id=ctx_id, det_size=(640, 640))
     
-    print("✅ AuraFace-v1 모델 로딩 완료")
+    # 메모리 정리
+    gc.collect()
+    
+    print("✅ AuraFace-v1 모델 로딩 완료 (고해상도)")
     return model
 
 
