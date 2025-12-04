@@ -2,6 +2,10 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useSubscription } from './hooks/useSubscription'
+import PremiumModal from './components/PremiumModal'
+import SubscriptionBadge from './components/SubscriptionBadge'
+import { PLAN_LIMITS } from './types/subscription'
 
 type MatchResult = {
   name: string
@@ -35,6 +39,11 @@ export default function Page() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [totalAnalyzed, setTotalAnalyzed] = useState(0)
   const [targetActor, setTargetActor] = useState<string>('')
+  
+  // 구독 시스템
+  const { subscription, canUseImages, useImages, canUseActors, upgradeToPremium, remainingImages, isPremium } = useSubscription()
+  const [showPremiumModal, setShowPremiumModal] = useState(false)
+  const [premiumModalReason, setPremiumModalReason] = useState<'images' | 'actors' | 'general'>('general')
 
   const backendPublic = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 
@@ -56,6 +65,21 @@ export default function Page() {
     setResults([])
     setSuccessMessage(null)
     if (files.length === 0) return
+    
+    // 구독 제한 확인 - 이미지 수
+    if (!canUseImages(files.length)) {
+      setPremiumModalReason('images')
+      setShowPremiumModal(true)
+      return
+    }
+    
+    // 구독 제한 확인 - 배우 수
+    if (!canUseActors(topK)) {
+      setPremiumModalReason('actors')
+      setShowPremiumModal(true)
+      return
+    }
+    
     const form = new FormData()
     files.forEach((f: File) => form.append('files', f))
     const qs = new URLSearchParams({ top_k: String(topK) })
@@ -136,8 +160,13 @@ export default function Page() {
       setProgress(100)
       
       // 성공적으로 처리된 이미지 개수 계산
-      const successCount = items.filter(item => item.results.length > 0).length
+      const successCount = items.filter(item => item.results.length > 0 || item.referenceScore !== undefined).length
       const errorCount = files.length - successCount
+      
+      // 이미지 사용 기록
+      if (successCount > 0) {
+        useImages(successCount)
+      }
       
       setTotalAnalyzed(prev => prev + successCount)
       
@@ -249,37 +278,19 @@ export default function Page() {
                   <h1 className="text-2xl font-bold text-white">
                     Genie <span className="bg-gradient-to-r from-amber-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">Match</span>
                   </h1>
-                  <p className="text-xs text-purple-300 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
-                    ✨ 마법의 배우 찾기
-                  </p>
+                  <p className="text-sm text-purple-300">마법처럼 찾는 닮은 배우 ✨</p>
                 </div>
               </div>
-
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center gap-2">
-                <button className="px-4 py-2 text-sm font-medium text-white bg-purple-800/50 rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20">
-                  대시보드
-                </button>
-                <button 
-                  onClick={() => setShowGuide(!showGuide)}
-                  className="px-4 py-2 text-sm font-medium text-purple-200 hover:text-white hover:bg-purple-800/50 rounded-xl transition-all"
-                >
-                  사용 가이드
-                </button>
-              </div>
-
-              {/* Stats Badge */}
-              {totalAnalyzed > 0 && (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400/20 to-fuchsia-500/20 border border-amber-400/30">
-                  <svg className="w-4 h-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span className="text-xs font-semibold text-amber-200">
-                    ✨ {totalAnalyzed}개 소원 완료
-                  </span>
-                </div>
-              )}
+              
+              {/* Subscription Badge */}
+              <SubscriptionBadge
+                subscription={subscription}
+                remainingImages={remainingImages}
+                onUpgradeClick={() => {
+                  setPremiumModalReason('general')
+                  setShowPremiumModal(true)
+                }}
+              />
             </div>
           </div>
         </nav>
@@ -505,7 +516,14 @@ export default function Page() {
                     <p className="text-2xl font-light text-white mb-3">
                       {isDragActive ? '✨ 여기에 파일을 놓으세요' : '2️⃣ 지원자 사진 업로드 💫'}
                     </p>
-                    <p className="text-sm text-purple-300">오디션 지원 배우들의 프로필 사진을 여러 장 업로드 • JPG, PNG, WEBP</p>
+                    <p className="text-sm text-purple-300">
+                      오디션 지원 배우들의 프로필 사진을 여러 장 업로드 • JPG, PNG, WEBP
+                      {!isPremium && (
+                        <span className="ml-2 px-2 py-1 bg-amber-400/20 text-amber-300 rounded text-xs">
+                          무료: 최대 {subscription.maxImages}개
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <label className="relative group cursor-pointer">
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-fuchsia-500 to-purple-600 rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
@@ -521,6 +539,11 @@ export default function Page() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         {files.length}개 파일 선택됨
+                        {!isPremium && files.length > subscription.maxImages && (
+                          <span className="ml-2 text-xs text-red-300">
+                            (제한 초과: {subscription.maxImages}개까지만 분석 가능)
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}
@@ -537,13 +560,22 @@ export default function Page() {
                     <label htmlFor="topk" className="text-base font-medium text-purple-200">
                       3️⃣ 보고 싶은 인원 수 ✨
                     </label>
+                    {!isPremium && topK > subscription.maxActors && (
+                      <span className="text-xs px-2 py-1 bg-red-500/20 text-red-300 rounded-full border border-red-400/30">
+                        제한: {subscription.maxActors}명까지
+                      </span>
+                    )}
                     {/* Tooltip */}
                     <div className="group relative">
                       <svg className="w-4 h-4 text-purple-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div className="hidden group-hover:block absolute left-0 top-6 w-48 p-2 bg-purple-900 border border-fuchsia-700 rounded-lg shadow-xl z-10">
-                        <p className="text-xs text-purple-300">상위 몇 명까지 볼지 선택하세요 (예: Top 3, Top 5, Top 10)</p>
+                        <p className="text-xs text-purple-300">
+                          {isPremium 
+                            ? '프리미엄: 최대 50명까지 가능' 
+                            : `무료 플랜: 최대 ${subscription.maxActors}명까지 가능`}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -555,15 +587,15 @@ export default function Page() {
                   id="topk"
                   type="range"
                   min={1}
-                  max={10}
+                  max={isPremium ? 50 : subscription.maxActors}
                   value={topK}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTopK(parseInt(e.target.value))}
                   className="w-full h-2 bg-purple-700/50 rounded-full appearance-none cursor-pointer slider-thumb"
                 />
                 <div className="relative flex justify-between text-xs text-purple-400 mt-4 font-medium px-1">
                   <span className="absolute left-0">1</span>
-                  <span className="absolute left-1/2 -translate-x-1/2">5</span>
-                  <span className="absolute right-0">10</span>
+                  <span className="absolute left-1/2 -translate-x-1/2">{isPremium ? 25 : Math.floor(subscription.maxActors / 2)}</span>
+                  <span className="absolute right-0">{isPremium ? 50 : subscription.maxActors}</span>
                 </div>
               </div>
 
@@ -1050,6 +1082,17 @@ export default function Page() {
           </div>
         </footer>
       </div>
+      
+      {/* Premium Modal */}
+      <PremiumModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        onUpgrade={() => {
+          upgradeToPremium()
+          setShowPremiumModal(false)
+        }}
+        reason={premiumModalReason}
+      />
     </main>
   )
 }
