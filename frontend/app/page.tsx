@@ -129,15 +129,7 @@ export default function Page() {
     
     try {
       const resp = await fetch(`/api/match-actors-batch?${qs.toString()}`, { method: 'POST', body: form })
-      
-      // 디버깅: 응답 상태 로그
-      console.log('[DEBUG] API Response Status:', resp.status)
-      console.log('[DEBUG] API Response Headers:', Object.fromEntries(resp.headers.entries()))
-      
       const data = await resp.json()
-      
-      // 디버깅: 응답 데이터 로그
-      console.log('[DEBUG] API Response Data:', data)
       
       if (!resp.ok) {
         const errorMsg = (data as any)?.detail || `요청 실패 (${resp.status})`

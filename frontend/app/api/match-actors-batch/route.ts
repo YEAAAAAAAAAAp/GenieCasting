@@ -5,10 +5,6 @@ export async function POST(req: Request) {
     const formData = await req.formData()
     const backend = process.env.BACKEND_URL
     
-    // 환경변수 디버깅
-    console.log('[DEBUG] BACKEND_URL:', backend ? 'SET' : 'NOT SET')
-    console.log('[DEBUG] Full backend URL:', backend)
-    
     // 환경변수 검증
     if (!backend) {
       console.error('[API Route] BACKEND_URL environment variable is not set')
@@ -29,9 +25,6 @@ export async function POST(req: Request) {
       backendUrl.searchParams.set('reference_actor', reference_actor)
     }
     
-    console.log('[DEBUG] Sending request to:', backendUrl.toString())
-    console.log('[DEBUG] FormData files count:', Array.from(formData.keys()).filter(k => k === 'files').length)
-    
     let resp;
     try {
       resp = await fetch(backendUrl.toString(), {
@@ -42,13 +35,9 @@ export async function POST(req: Request) {
         keepalive: true,
       })
     } catch (fetchError: any) {
-      console.error('[DEBUG] Fetch error:', fetchError.message)
-      console.error('[DEBUG] Fetch error stack:', fetchError.stack)
-      console.error('[DEBUG] Fetch error cause:', fetchError.cause)
+      console.error('[API Route] Backend fetch failed:', fetchError.message)
       throw new Error(`Backend fetch failed: ${fetchError.message}`)
     }
-    
-    console.log('[DEBUG] Backend response status:', resp.status)
     
     if (!resp.ok) {
       const errorText = await resp.text()
