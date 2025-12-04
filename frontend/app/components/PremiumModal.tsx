@@ -99,7 +99,7 @@ export default function PremiumModal({ isOpen, onClose, onUpgrade, reason = 'gen
               onClick={onUpgrade}
               className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-purple-900 font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg"
             >
-              프리미엄 체험하기 - ₩{PLAN_LIMITS.premium.price.toLocaleString()}/월
+              프리미엄 체험하기 - 첫 달 무료 🎉
             </button>
             <button
               onClick={onClose}
@@ -111,7 +111,7 @@ export default function PremiumModal({ isOpen, onClose, onUpgrade, reason = 'gen
 
           {/* Note */}
           <p className="text-xs text-center text-purple-300 mt-4">
-            * 데모 버전입니다. 실제 결제는 진행되지 않습니다.
+            * 이름과 이메일을 입력하시면 첫 달 무료로 프리미엄을 체험하실 수 있습니다.
           </p>
         </div>
       </div>

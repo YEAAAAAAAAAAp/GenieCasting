@@ -24,6 +24,33 @@ export async function POST(req: NextRequest) {
     }
 
     // Create Notion page
+    const notionPayload = {
+      parent: {
+        database_id: NOTION_DB_ID,
+      },
+      properties: {
+        '이름': {
+          title: [
+            {
+              text: {
+                content: name,
+              },
+            },
+          ],
+        },
+        '이메일': {
+          email: email,
+        },
+        '신청일시': {
+          date: {
+            start: new Date().toISOString(),
+          },
+        },
+      },
+    }
+
+    console.log('[Notion API] Sending payload:', JSON.stringify(notionPayload, null, 2))
+
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
@@ -31,35 +58,16 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
         'Notion-Version': '2022-06-28',
       },
-      body: JSON.stringify({
-        parent: {
-          database_id: NOTION_DB_ID,
-        },
-        properties: {
-          '이름': {
-            title: [
-              {
-                text: {
-                  content: name,
-                },
-              },
-            ],
-          },
-          '이메일': {
-            email: email,
-          },
-          '신청일시': {
-            date: {
-              start: new Date().toISOString(),
-            },
-          },
-        },
-      }),
+      body: JSON.stringify(notionPayload),
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('Notion API error:', error)
+      const errorText = await response.text()
+      console.error('[Notion API] Error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      })
       return NextResponse.json(
         { error: '등록 중 오류가 발생했습니다.' },
         { status: response.status }
