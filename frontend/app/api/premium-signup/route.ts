@@ -28,11 +28,6 @@ export async function POST(req: NextRequest) {
     const formattedDbId = NOTION_DB_ID!.length === 32 && !NOTION_DB_ID!.includes('-')
       ? `${NOTION_DB_ID!.slice(0, 8)}-${NOTION_DB_ID!.slice(8, 12)}-${NOTION_DB_ID!.slice(12, 16)}-${NOTION_DB_ID!.slice(16, 20)}-${NOTION_DB_ID!.slice(20)}`
       : NOTION_DB_ID!
-    
-    console.log('[Notion API] DB ID conversion:', {
-      original: NOTION_DB_ID,
-      formatted: formattedDbId
-    })
 
     const notionPayload = {
       parent: {
@@ -58,8 +53,6 @@ export async function POST(req: NextRequest) {
         },
       },
     }
-
-    console.log('[Notion API] Sending payload:', JSON.stringify(notionPayload, null, 2))
 
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
