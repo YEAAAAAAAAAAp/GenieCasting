@@ -671,7 +671,7 @@ export default function Page() {
                 />
                 <div className="relative flex justify-between text-xs text-purple-400 mt-4 font-medium px-1">
                   <span className="absolute left-0">1</span>
-                  <span className="absolute left-1/2 -translate-x-1/2">{isPremium ? 25 : Math.floor(subscription.maxActors / 2)}</span>
+                  <span className="absolute left-1/2 -translate-x-1/2">{isPremium ? 25 : 3}</span>
                   <span className="absolute right-0">{isPremium ? 50 : subscription.maxActors}</span>
                 </div>
                 {!isPremium && (
