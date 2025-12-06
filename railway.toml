@@ -1,11 +1,11 @@
 # Railway.toml - Railway 배포 설정 파일
-# Railpack 대신 Nixpacks 사용 강제
+# Railpack 사용 (Nixpacks는 Deprecated)
 
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
 
 [deploy]
-startCommand = "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
