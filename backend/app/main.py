@@ -16,12 +16,32 @@ app = FastAPI(title="Genie Match - Actor Image Matcher", version="1.0.0 (Insight
 async def startup_event():
     """서버 시작 시 모델 사전 로드 (첫 요청 시간 단축)"""
     try:
+        print("🚀 서버 시작: Railway 환경 검증...")
+        import os
+        print(f"   - PYTHONPATH: {os.getenv('PYTHONPATH', 'Not set')}")
+        print(f"   - HF_HOME: {os.getenv('HF_HOME', 'Not set')}")
+        print(f"   - PORT: {os.getenv('PORT', 'Not set')}")
+        print(f"   - 데이터 디렉토리: {DATA_DIR}")
+        print(f"   - 데이터 디렉토리 존재: {DATA_DIR.exists()}")
+        
         print("🚀 서버 시작: 모델 사전 로딩 시작...")
         # 비동기로 모델 로드 (서버 시작 블로킹 방지)
         await asyncio.to_thread(get_insightface_model)
         print("✅ 모델 사전 로딩 완료")
+        
+        # 인덱스 로드 확인
+        print("🚀 배우 인덱스 로딩 시작...")
+        INDEX.ensure_loaded()
+        actor_count = len(INDEX._emb) if INDEX._emb is not None else 0
+        print(f"✅ 배우 인덱스 로드 완료: {actor_count}명")
+        
+        if actor_count == 0:
+            print("⚠️ 경고: 배우 데이터가 비어있습니다!")
+            
     except Exception as e:
         print(f"⚠️ 모델 사전 로딩 실패 (첫 요청 시 로드됨): {e}")
+        import traceback
+        traceback.print_exc()
 
 
 # Allow local dev frontend
@@ -40,7 +60,25 @@ if ACTOR_IMAGES_DIR.exists():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    """Railway 헬스체크용 간단한 엔드포인트"""
+    return {"status": "ok", "service": "genie-casting"}
+
+
+@app.get("/")
+async def root():
+    """루트 엔드포인트 - Railway 배포 확인용"""
+    return {
+        "service": "Genie Casting API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "index_status": "/index-status",
+            "match": "/match-actors",
+            "match_batch": "/match-actors-batch",
+            "docs": "/docs"
+        }
+    }
 
 
 @app.get("/index-status")
